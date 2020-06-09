@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -31,6 +32,12 @@ Token *new_token(Token *cur, TokenKind kind, char *loc, int len) {
 }
 
 static char *current_input;
+static noreturn void error(char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    exit(1);
+}
 static void verror_at(char *loc, char *fmt, va_list ap) {
     fprintf(stderr, "%.*s\n", (int)(loc - current_input), current_input);
     fprintf(stderr, "%.*s", (int)(loc - current_input), "");
@@ -91,6 +98,71 @@ long get_number(Token *tok) {
     return tok->val;
 }
 
+typedef enum {
+    ND_NUM,
+    ND_ADD,
+    ND_SUB,
+} NodeKind;
+typedef struct Node Node;
+struct Node {
+    NodeKind kind;
+    Token *tok;
+    Node *lhs, *rhs;
+    long val; // ND_NUM
+};
+Node *new_node(NodeKind kind, Token *tok) {
+    Node *node = calloc(1, sizeof(Node));
+    node->kind = kind;
+    node->tok = tok;
+    return node;
+}
+Node *new_binary(NodeKind kind, Node *lhs, Node *rhs, Token *tok) {
+    Node *node = new_node(kind, tok);
+    node->lhs = lhs;
+    node->rhs = rhs;
+    return node;
+}
+Node *new_number(Token *tok) {
+    Node *node = new_node(ND_NUM, tok);
+    node->val = get_number(tok);
+    return node;
+}
+
+Node *add(Token **rest, Token *tok);
+Node *primary(Token **rest, Token *tok);
+
+Node *parse(Token *tok) {
+    Node *node = add(&tok, tok);
+    if (tok->kind != TK_EOF)
+        error_tok(tok, "extra tokens");
+    return node;
+}
+// add = primary ("+" primary | "-" primary)*
+Node *add(Token **rest, Token *tok) {
+    Node *node = primary(&tok, tok);
+    for (;;) {
+        Token *op = tok;
+        if (equal(tok, "+")) {
+            Node *rhs = primary(&tok, tok->next);
+            node = new_binary(ND_ADD, node, rhs, op);
+            continue;
+        }
+        if (equal(tok, "-")) {
+            Node *rhs = primary(&tok, tok->next);
+            node = new_binary(ND_SUB, node, rhs, op);
+            continue;
+        }
+        *rest = tok;
+        return node;
+    }
+}
+// primary = num
+Node *primary(Token **rest, Token *tok) {
+    Node *node = new_number(tok);
+    *rest = tok->next;
+    return node;
+}
+
 void emitfln(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -98,24 +170,49 @@ void emitfln(char *fmt, ...) {
     fprintf(stdout, "\n");
 }
 
+static char *reg64[] = {"%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
+static int top;
+static char *reg(int i) {
+    if (i < 0 || i > sizeof(reg64) / sizeof(*reg64)) {
+        error("register exhausted");
+    }
+    return reg64[i];
+}
+void gen_expr(Node *node) {
+    if (node->kind == ND_NUM) {
+        emitfln("\tmov $%lu, %s", node->val, reg(top++));
+        return;
+    }
+    gen_expr(node->lhs);
+    gen_expr(node->rhs);
+    char *rs = reg(top - 1);
+    char *rd = reg(top - 2);
+    switch (node->kind) {
+    default:
+        error_tok(node->tok, "unknown node kind");
+    case ND_ADD:
+        emitfln("\tadd %s, %s", rs, rd);
+        top--;
+        return;
+    case ND_SUB:
+        emitfln("\tsub %s, %s", rs, rd);
+        top--;
+        return;
+    }
+}
+void codegen(Node *node) {
+    emitfln(".globl main");
+    emitfln("main:");
+    gen_expr(node);
+    emitfln("mov %s, %%rax", reg(--top));
+    assert(top == 0);
+    emitfln("ret");
+}
+
 int main(int argc, char **argv) {
     char *input = argv[1];
     Token *tok = tokenize(input);
-    emitfln(".globl main");
-    emitfln("main:");
-    emitfln("\tmov $%lu, %%rax", get_number(tok));
-    for (; tok->kind != TK_EOF; tok = tok->next) {
-        if (equal(tok, "+")) {
-            tok = tok->next;
-            emitfln("\tadd $%lu, %%rax", get_number(tok));
-            continue;
-        }
-        if (equal(tok, "-")) {
-            tok = tok->next;
-            emitfln("\tsub $%lu, %%rax", get_number(tok));
-            continue;
-        }
-    }
-    emitfln("ret");
+    Node *node = parse(tok);
+    codegen(node);
     return 0;
 }
