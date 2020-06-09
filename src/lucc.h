@@ -7,6 +7,16 @@
 #include <stdnoreturn.h>
 #include <string.h>
 
+extern bool opt_dump_ir1;
+extern bool opt_dump_ir2;
+
+typedef enum {
+    TARGET_X86_64,
+    TARGET_RISCV,
+    TARGET_LLVM,
+} TargetArch;
+extern TargetArch opt_target;
+
 typedef enum {
     TK_EOF,
     TK_NUM,
@@ -75,7 +85,6 @@ struct IR {
 };
 
 IR *irgen(Node *);
-void alloc_regs_x64(IR *);
 void codegen_x64(IR *ir);
 char *get_regx64(Operand *);
 void print_ir(IR *);

@@ -1,7 +1,8 @@
 #include "lucc.h"
 
-static bool opt_dump_ir1;
-static bool opt_dump_ir2;
+bool opt_dump_ir1;
+bool opt_dump_ir2;
+TargetArch opt_target;
 static char *input;
 
 static noreturn void usage(int code) {
@@ -10,9 +11,24 @@ static noreturn void usage(int code) {
 }
 static void parse_args(int argc, char **argv) {
     input = NULL;
+    opt_target = TARGET_X86_64;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--help")) {
             usage(0);
+        }
+        if (!strncmp(argv[i], "-march=", 7)) {
+            if (!strcmp(argv[i] + 7, "x86_64")) {
+                opt_target = TARGET_X86_64;
+                continue;
+            }
+            if (!strcmp(argv[i] + 7, "riscv")) {
+                opt_target = TARGET_RISCV;
+                continue;
+            }
+            if (!strcmp(argv[i] + 7, "llvm")) {
+                opt_target = TARGET_LLVM;
+                continue;
+            }
         }
         if (!strcmp(argv[i], "--dump-ir1")) {
             opt_dump_ir1 = true;
@@ -20,6 +36,10 @@ static void parse_args(int argc, char **argv) {
         }
         if (!strcmp(argv[i], "--dump-ir2")) {
             opt_dump_ir2 = true;
+            continue;
+        }
+        if (!strcmp(argv[i], "--dump-ir")) {
+            opt_dump_ir1 = opt_dump_ir2 = true;
             continue;
         }
         if (argv[i][0] == '-' && argv[i][1] != '\0') {
@@ -45,15 +65,12 @@ int main(int argc, char **argv) {
         }
     }
 
-    alloc_regs_x64(ir);
-
-    if (opt_dump_ir2) {
-        fprintf(stderr, "dump ir 2\n");
-        for (IR *tmp = ir; tmp; tmp = tmp->next) {
-            print_ir(tmp);
-        }
+    switch (opt_target) {
+    case TARGET_X86_64:
+        codegen_x64(ir);
+        break;
+    default:
+        error("unsupported target");
     }
-
-    codegen_x64(ir);
     return 0;
 }

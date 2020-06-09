@@ -1,5 +1,12 @@
 #include "lucc.h"
 
+void emitfln(char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    vfprintf(stdout, fmt, ap);
+    fprintf(stdout, "\n");
+}
+
 static char *reg_x64[] = {"INVALID", "%r10", "%r11", "%r12",
                           "%r13",    "%r14", "%r15"};
 static bool used[7] = {true}; // INVALID always used
@@ -9,7 +16,7 @@ char *get_regx64(Operand *op) {
     return reg_x64[op->reg];
 }
 
-void alloc(Operand *op) {
+static void alloc(Operand *op) {
     if (op->reg)
         return;
 
@@ -22,13 +29,13 @@ void alloc(Operand *op) {
     }
     error("register exhausted");
 }
-void kill(Operand *op) {
+static void kill(Operand *op) {
     assert(op && op->reg);
     assert(used[op->reg]);
     used[op->reg] = false;
 }
 
-void alloc_regs_x64(IR *ir) {
+static void alloc_regs_x64(IR *ir) {
     for (; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
@@ -61,13 +68,16 @@ void alloc_regs_x64(IR *ir) {
     }
 }
 
-void emitfln(char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stdout, fmt, ap);
-    fprintf(stdout, "\n");
-}
 void codegen_x64(IR *ir) {
+    alloc_regs_x64(ir);
+
+    if (opt_dump_ir2) {
+        fprintf(stderr, "dump ir 2\n");
+        for (IR *tmp = ir; tmp; tmp = tmp->next) {
+            print_ir(tmp);
+        }
+    }
+
     emitfln(".globl main");
     emitfln("main:");
     for (; ir; ir = ir->next) {
