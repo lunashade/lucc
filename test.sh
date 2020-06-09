@@ -25,4 +25,18 @@ assert 42 '6*7'
 assert 2 '6/3'
 assert 42 '(3+4) * (12/2)'
 assert 42 '(-3+-4) * (12/-2)'
+
+assert 1 '1==1'
+assert 0 '1!=1'
+assert 0 '1<1'
+assert 1 '1<=1'
+assert 0 '1>1'
+assert 1 '1>=1'
+
+assert 0 '0==1'
+assert 1 '0!=1'
+assert 1 '0<1'
+assert 1 '0<=1'
+assert 0 '0>1'
+assert 0 '0>=1'
 echo "ok"

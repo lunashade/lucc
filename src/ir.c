@@ -27,6 +27,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         *code = cur;
         return cur->dst;
     }
+
     Operand *lhs = irgen_expr(cur, &cur, node->lhs);
     Operand *rhs = irgen_expr(cur, &cur, node->rhs);
     Operand *dst = new_operand();
@@ -48,6 +49,26 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         return dst;
     case ND_DIV:
         cur = new_ir(cur, IR_DIV, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    case ND_EQ:
+        cur = new_ir(cur, IR_EQ, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    case ND_NE:
+        cur = new_ir(cur, IR_NE, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    case ND_LT:
+        cur = new_ir(cur, IR_LT, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    case ND_LE:
+        cur = new_ir(cur, IR_LE, lhs, rhs, dst);
         cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
         *code = cur;
         return dst;

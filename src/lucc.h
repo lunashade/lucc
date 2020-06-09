@@ -7,7 +7,6 @@
 #include <stdnoreturn.h>
 #include <string.h>
 
-
 typedef enum {
     TK_EOF,
     TK_NUM,
@@ -27,11 +26,15 @@ noreturn void error_tok(Token *, char *, ...);
 Token *tokenize(char *);
 
 typedef enum {
-    ND_NUM,
-    ND_ADD,
-    ND_SUB,
-    ND_MUL,
-    ND_DIV,
+    ND_NUM, // num
+    ND_ADD, // +
+    ND_SUB, // -
+    ND_MUL, // *
+    ND_DIV, // /
+    ND_EQ,  // ==
+    ND_NE,  // !=
+    ND_LT,  // <
+    ND_LE,  // <=
 } NodeKind;
 typedef struct Node Node;
 struct Node {
@@ -52,6 +55,10 @@ typedef enum {
     IR_SUB,
     IR_MUL,
     IR_DIV,
+    IR_EQ,
+    IR_NE,
+    IR_LT,
+    IR_LE,
 } IRKind;
 
 typedef struct Operand Operand;

@@ -1,7 +1,16 @@
 #include "lucc.h"
 
-
 static char *current_input;
+static char *MULTIPUNCT[] = {"==", "<=", ">=", "!="};
+
+static bool startswith(char *p, char *s) { return !strncmp(p, s, strlen(s)); }
+static int is_multipunct(char *p) {
+    for (int i = 0; i < sizeof(MULTIPUNCT) / sizeof(*MULTIPUNCT); i++) {
+        if (startswith(p, MULTIPUNCT[i]))
+            return strlen(MULTIPUNCT[i]);
+    }
+    return 0;
+}
 
 noreturn void error(char *fmt, ...) {
     va_list ap;
@@ -48,6 +57,12 @@ Token *tokenize(char *input) {
     while (*p) {
         if (isspace(*p)) {
             p++;
+            continue;
+        }
+        if (is_multipunct(p)) {
+            int len = is_multipunct(p);
+            cur = new_token(cur, TK_RESERVED, p, len);
+            p += cur->len;
             continue;
         }
         if (ispunct(*p)) {

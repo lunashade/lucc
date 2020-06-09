@@ -4,6 +4,7 @@
     case EN:                                                                   \
         fprintf(stderr, #EN);                                                  \
         break;
+
 void print_operand(Operand *op) {
     if (op->reg)
         fprintf(stderr, "%s", get_regx64(op));
@@ -16,6 +17,12 @@ void print_ir(IR *ir) {
         ENUMDUMP(IR_IMM)
         ENUMDUMP(IR_ADD)
         ENUMDUMP(IR_SUB)
+        ENUMDUMP(IR_MUL)
+        ENUMDUMP(IR_DIV)
+        ENUMDUMP(IR_EQ)
+        ENUMDUMP(IR_NE)
+        ENUMDUMP(IR_LT)
+        ENUMDUMP(IR_LE)
         ENUMDUMP(IR_FREE)
         ENUMDUMP(IR_MOV)
         ENUMDUMP(IR_RETURN)

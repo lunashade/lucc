@@ -41,6 +41,10 @@ void alloc_regs_x64(IR *ir) {
         case IR_SUB:
         case IR_MUL:
         case IR_DIV:
+        case IR_EQ:
+        case IR_NE:
+        case IR_LT:
+        case IR_LE:
             alloc(ir->lhs);
             ir->dst->reg = ir->lhs->reg;
             break;
@@ -90,6 +94,26 @@ void codegen_x64(IR *ir) {
             emitfln("\tcqo");
             emitfln("\tidiv %s", get_regx64(ir->rhs));
             emitfln("\tmov %%rax, %s", get_regx64(ir->dst));
+            break;
+        case IR_EQ:
+            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tsete %%al");
+            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            break;
+        case IR_NE:
+            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tsetne %%al");
+            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            break;
+        case IR_LT:
+            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tsetl %%al");
+            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            break;
+        case IR_LE:
+            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tsetle %%al");
+            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
             break;
         case IR_RETURN:
             emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));

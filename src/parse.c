@@ -1,6 +1,8 @@
 #include "lucc.h"
 
 static Node *expr(Token **rest, Token *tok);
+static Node *equality(Token **rest, Token *tok);
+static Node *relational(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
@@ -46,8 +48,57 @@ Node *parse(Token *tok) {
         error_tok(tok, "extra tokens");
     return node;
 }
-// expr = add
-static Node *expr(Token **rest, Token *tok) { return add(rest, tok); }
+// expr = equality
+static Node *expr(Token **rest, Token *tok) { return equality(rest, tok); }
+
+// equality = relational ("==" relational | "!=" relational)*
+static Node *equality(Token **rest, Token *tok) {
+    Node *node = relational(&tok, tok);
+    for (;;) {
+        Token *op = tok;
+        if (equal(tok, "==")) {
+            Node *rhs = relational(&tok, tok->next);
+            node = new_binary(ND_EQ, node, rhs, op);
+            continue;
+        }
+        if (equal(tok, "!=")) {
+            Node *rhs = relational(&tok, tok->next);
+            node = new_binary(ND_NE, node, rhs, op);
+            continue;
+        }
+        *rest = tok;
+        return node;
+    }
+}
+// relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+static Node *relational(Token **rest, Token *tok) {
+    Node *node = add(&tok, tok);
+    for (;;) {
+        Token *op = tok;
+        if (equal(tok, "<")) {
+            Node *rhs = add(&tok, tok->next);
+            node = new_binary(ND_LT, node, rhs, op);
+            continue;
+        }
+        if (equal(tok, "<=")) {
+            Node *rhs = add(&tok, tok->next);
+            node = new_binary(ND_LE, node, rhs, op);
+            continue;
+        }
+        if (equal(tok, ">")) {
+            Node *rhs = add(&tok, tok->next);
+            node = new_binary(ND_LT, rhs, node, op);
+            continue;
+        }
+        if (equal(tok, ">=")) {
+            Node *rhs = add(&tok, tok->next);
+            node = new_binary(ND_LE, rhs, node, op);
+            continue;
+        }
+        *rest = tok;
+        return node;
+    }
+}
 
 // add = mul ("+" mul | "-" mul)*
 static Node *add(Token **rest, Token *tok) {
