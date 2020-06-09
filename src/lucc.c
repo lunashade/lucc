@@ -36,6 +36,7 @@ static noreturn void error(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap);
+    fprintf(stderr, "\n");
     exit(1);
 }
 static void verror_at(char *loc, char *fmt, va_list ap) {
@@ -163,56 +164,228 @@ Node *primary(Token **rest, Token *tok) {
     return node;
 }
 
+typedef enum {
+    IR_NOP,
+    IR_IMM,
+    IR_MOV,
+    IR_RETURN,
+    IR_FREE,
+    IR_ADD,
+    IR_SUB,
+} IRKind;
+
+typedef struct Operand Operand;
+struct Operand {
+    int id;
+    int reg;
+};
+static int opp;
+
+Operand *new_operand(void) {
+    Operand *op = calloc(1, sizeof(Operand));
+    op->id = opp++;
+    return op;
+}
+typedef struct IR IR;
+struct IR {
+    IR *next;
+    IRKind kind;
+    Operand *lhs, *rhs, *dst;
+    long val;
+};
+
+IR *new_ir(IR *cur, IRKind kind, Operand *lhs, Operand *rhs, Operand *dst) {
+    IR *ir = calloc(1, sizeof(IR));
+    ir->kind = kind;
+    if (lhs)
+        ir->lhs = lhs;
+    if (rhs)
+        ir->rhs = rhs;
+    ir->dst = dst;
+    cur->next = ir;
+    return ir;
+}
+
+Operand *irgen_expr(IR *cur, IR **code, Node *node) {
+    if (node->kind == ND_NUM) {
+        cur = new_ir(cur, IR_IMM, NULL, NULL, new_operand());
+        cur->val = node->val;
+        *code = cur;
+        return cur->dst;
+    }
+    Operand *lhs = irgen_expr(cur, &cur, node->lhs);
+    Operand *rhs = irgen_expr(cur, &cur, node->rhs);
+    Operand *dst = new_operand();
+    switch (node->kind) {
+    case ND_ADD:
+        cur = new_ir(cur, IR_ADD, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    case ND_SUB:
+        cur = new_ir(cur, IR_SUB, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    }
+    error_tok(node->tok, "unknown node");
+}
+
+IR *irgen(Node *node) {
+    IR head = {};
+    IR *cur = &head;
+    Operand *ret = irgen_expr(cur, &cur, node);
+    new_ir(cur, IR_RETURN, ret, NULL, NULL);
+    return head.next;
+}
+
+static char *reg_x64[] = {"INVALID", "%r10", "%r11", "%r12",
+                          "%r13",    "%r14", "%r15"};
+static bool used[7] = {true}; // INVALID always used
+
+void alloc(Operand *op) {
+    if (op->reg)
+        return;
+
+    for (int i = 1; i < sizeof(reg_x64) / sizeof(*reg_x64); i++) {
+        if (used[i])
+            continue;
+        used[i] = true;
+        op->reg = i;
+        return;
+    }
+    error("register exhausted");
+}
+void kill(Operand *op) {
+    assert(op && op->reg);
+    assert(used[op->reg]);
+    used[op->reg] = false;
+}
+
+void alloc_regs_x64(IR *ir) {
+    for (; ir; ir = ir->next) {
+        switch (ir->kind) {
+        case IR_NOP:
+            break;
+        case IR_IMM:
+            alloc(ir->dst);
+            break;
+        case IR_MOV:
+        case IR_ADD:
+        case IR_SUB:
+            alloc(ir->lhs);
+            ir->dst->reg = ir->lhs->reg;
+            break;
+        case IR_RETURN:
+            kill(ir->lhs);
+            break;
+        case IR_FREE:
+            kill(ir->lhs);
+            ir->kind = IR_NOP;
+            break;
+        default:
+            error("unknown IR operator");
+        }
+    }
+}
+char *get_regx64(Operand *op) {
+    assert(op->reg > 0 && op->reg < 7);
+    return reg_x64[op->reg];
+}
+
 void emitfln(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stdout, fmt, ap);
     fprintf(stdout, "\n");
 }
-
-static char *reg64[] = {"%r10", "%r11", "%r12", "%r13", "%r14", "%r15"};
-static int top;
-static char *reg(int i) {
-    if (i < 0 || i > sizeof(reg64) / sizeof(*reg64)) {
-        error("register exhausted");
-    }
-    return reg64[i];
-}
-void gen_expr(Node *node) {
-    if (node->kind == ND_NUM) {
-        emitfln("\tmov $%lu, %s", node->val, reg(top++));
-        return;
-    }
-    gen_expr(node->lhs);
-    gen_expr(node->rhs);
-    char *rs = reg(top - 1);
-    char *rd = reg(top - 2);
-    switch (node->kind) {
-    default:
-        error_tok(node->tok, "unknown node kind");
-    case ND_ADD:
-        emitfln("\tadd %s, %s", rs, rd);
-        top--;
-        return;
-    case ND_SUB:
-        emitfln("\tsub %s, %s", rs, rd);
-        top--;
-        return;
-    }
-}
-void codegen(Node *node) {
+void codegen_x64(IR *ir) {
     emitfln(".globl main");
     emitfln("main:");
-    gen_expr(node);
-    emitfln("mov %s, %%rax", reg(--top));
-    assert(top == 0);
-    emitfln("ret");
+    for (; ir; ir = ir->next) {
+        switch (ir->kind) {
+        case IR_NOP:
+            break;
+        case IR_IMM:
+            emitfln("\tmov $%lu, %s", ir->val, get_regx64(ir->dst));
+            break;
+        case IR_MOV:
+            emitfln("\tmov %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            break;
+        case IR_ADD:
+            emitfln("\tadd %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            break;
+        case IR_SUB:
+            emitfln("\tsub %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            break;
+        case IR_RETURN:
+            emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));
+            emitfln("ret");
+            break;
+        default:
+            error("unknown IR operator");
+        }
+    }
+}
+
+#define ENUMDUMP(EN)                                                           \
+    case EN:                                                                   \
+        fprintf(stderr, #EN);                                                  \
+        break;
+void print_operand(Operand *op) {
+    if (op->reg)
+        fprintf(stderr, "%s", get_regx64(op));
+    fprintf(stderr, "(%d)", op->id);
+}
+void print_ir(IR *ir) {
+    fprintf(stderr, "kind: ");
+    switch (ir->kind) {
+        ENUMDUMP(IR_NOP)
+        ENUMDUMP(IR_IMM)
+        ENUMDUMP(IR_ADD)
+        ENUMDUMP(IR_SUB)
+        ENUMDUMP(IR_FREE)
+        ENUMDUMP(IR_MOV)
+        ENUMDUMP(IR_RETURN)
+    }
+    fprintf(stderr, "(%d)", ir->kind);
+    if (ir->lhs) {
+        fprintf(stderr, ", lhs: ");
+        print_operand(ir->lhs);
+    }
+    if (ir->rhs) {
+        fprintf(stderr, ", rhs: ");
+        print_operand(ir->rhs);
+    }
+    if (ir->dst) {
+        fprintf(stderr, ", dst: ");
+        print_operand(ir->dst);
+    }
+    fprintf(stderr, "\n");
 }
 
 int main(int argc, char **argv) {
     char *input = argv[1];
     Token *tok = tokenize(input);
     Node *node = parse(tok);
-    codegen(node);
+    IR *ir = irgen(node);
+
+#ifdef DUMPIR1
+    fprintf(stderr, "dump ir 1\n");
+    for (IR *tmp = ir; tmp; tmp = tmp->next) {
+        print_ir(tmp);
+    }
+#endif
+
+    alloc_regs_x64(ir);
+
+#ifdef DUMPIR2
+    fprintf(stderr, "dump ir 2\n");
+    for (IR *tmp = ir; tmp; tmp = tmp->next) {
+        print_ir(tmp);
+    }
+#endif
+
+    codegen_x64(ir);
     return 0;
 }
