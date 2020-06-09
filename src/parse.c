@@ -3,6 +3,7 @@
 static Node *expr(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
+static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
 
 bool equal(Token *tok, char *p) {
@@ -32,9 +33,9 @@ Node *new_binary(NodeKind kind, Node *lhs, Node *rhs, Token *tok) {
     node->rhs = rhs;
     return node;
 }
-Node *new_number(Token *tok) {
+Node *new_number(long val, Token *tok) {
     Node *node = new_node(ND_NUM, tok);
-    node->val = get_number(tok);
+    node->val = val;
     return node;
 }
 
@@ -67,18 +68,18 @@ static Node *add(Token **rest, Token *tok) {
         return node;
     }
 }
-// mul = primary ("*" primary | "/" primary)*
+// mul = unary ("*" unary | "/" unary)*
 static Node *mul(Token **rest, Token *tok) {
-    Node *node = primary(&tok, tok);
+    Node *node = unary(&tok, tok);
     for (;;) {
         Token *op = tok;
         if (equal(tok, "*")) {
-            Node *rhs = primary(&tok, tok->next);
+            Node *rhs = unary(&tok, tok->next);
             node = new_binary(ND_MUL, node, rhs, op);
             continue;
         }
         if (equal(tok, "/")) {
-            Node *rhs = primary(&tok, tok->next);
+            Node *rhs = unary(&tok, tok->next);
             node = new_binary(ND_DIV, node, rhs, op);
             continue;
         }
@@ -86,6 +87,20 @@ static Node *mul(Token **rest, Token *tok) {
         return node;
     }
 }
+// unary = (unary-op)? unary | primary
+// unary-op = "+" | "-"
+static Node *unary(Token **rest, Token *tok) {
+    Token *start = tok;
+    if (equal(tok, "+")) {
+        return unary(rest, tok->next);
+    }
+    if (equal(tok, "-")) {
+        return new_binary(ND_SUB, new_number(0, tok), unary(rest, tok->next),
+                          start);
+    }
+    return primary(rest, tok);
+}
+
 // primary = num | "(" expr ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
@@ -93,7 +108,7 @@ static Node *primary(Token **rest, Token *tok) {
         *rest = skip(tok, ")");
         return node;
     }
-    Node *node = new_number(tok);
+    Node *node = new_number(get_number(tok), tok);
     *rest = tok->next;
     return node;
 }
