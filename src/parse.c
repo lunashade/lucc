@@ -1,11 +1,17 @@
 #include "lucc.h"
 
+static Node *expr(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
+static Node *mul(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
-
 
 bool equal(Token *tok, char *p) {
     return (strlen(p) == tok->len) && (strncmp(tok->loc, p, tok->len) == 0);
+}
+Token *skip(Token *tok, char *p) {
+    if (!equal(tok, p))
+        error_tok(tok, "expected token '%s'", p);
+    return tok->next;
 }
 
 long get_number(Token *tok) {
@@ -32,24 +38,28 @@ Node *new_number(Token *tok) {
     return node;
 }
 
+// program = expr
 Node *parse(Token *tok) {
-    Node *node = add(&tok, tok);
+    Node *node = expr(&tok, tok);
     if (tok->kind != TK_EOF)
         error_tok(tok, "extra tokens");
     return node;
 }
-// add = primary ("+" primary | "-" primary)*
+// expr = add
+static Node *expr(Token **rest, Token *tok) { return add(rest, tok); }
+
+// add = mul ("+" mul | "-" mul)*
 static Node *add(Token **rest, Token *tok) {
-    Node *node = primary(&tok, tok);
+    Node *node = mul(&tok, tok);
     for (;;) {
         Token *op = tok;
         if (equal(tok, "+")) {
-            Node *rhs = primary(&tok, tok->next);
+            Node *rhs = mul(&tok, tok->next);
             node = new_binary(ND_ADD, node, rhs, op);
             continue;
         }
         if (equal(tok, "-")) {
-            Node *rhs = primary(&tok, tok->next);
+            Node *rhs = mul(&tok, tok->next);
             node = new_binary(ND_SUB, node, rhs, op);
             continue;
         }
@@ -57,8 +67,32 @@ static Node *add(Token **rest, Token *tok) {
         return node;
     }
 }
-// primary = num
+// mul = primary ("*" primary | "/" primary)*
+static Node *mul(Token **rest, Token *tok) {
+    Node *node = primary(&tok, tok);
+    for (;;) {
+        Token *op = tok;
+        if (equal(tok, "*")) {
+            Node *rhs = primary(&tok, tok->next);
+            node = new_binary(ND_MUL, node, rhs, op);
+            continue;
+        }
+        if (equal(tok, "/")) {
+            Node *rhs = primary(&tok, tok->next);
+            node = new_binary(ND_DIV, node, rhs, op);
+            continue;
+        }
+        *rest = tok;
+        return node;
+    }
+}
+// primary = num | "(" expr ")"
 static Node *primary(Token **rest, Token *tok) {
+    if (equal(tok, "(")) {
+        Node *node = expr(&tok, tok->next);
+        *rest = skip(tok, ")");
+        return node;
+    }
     Node *node = new_number(tok);
     *rest = tok->next;
     return node;

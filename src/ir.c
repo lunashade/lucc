@@ -41,6 +41,16 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
         *code = cur;
         return dst;
+    case ND_MUL:
+        cur = new_ir(cur, IR_MUL, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    case ND_DIV:
+        cur = new_ir(cur, IR_DIV, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, rhs, NULL, NULL);
+        *code = cur;
+        return dst;
     }
     error_tok(node->tok, "unknown node");
 }

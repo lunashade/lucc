@@ -39,6 +39,8 @@ void alloc_regs_x64(IR *ir) {
         case IR_MOV:
         case IR_ADD:
         case IR_SUB:
+        case IR_MUL:
+        case IR_DIV:
             alloc(ir->lhs);
             ir->dst->reg = ir->lhs->reg;
             break;
@@ -79,6 +81,15 @@ void codegen_x64(IR *ir) {
             break;
         case IR_SUB:
             emitfln("\tsub %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            break;
+        case IR_MUL:
+            emitfln("\timul %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            break;
+        case IR_DIV:
+            emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));
+            emitfln("\tcqo");
+            emitfln("\tidiv %s", get_regx64(ir->rhs));
+            emitfln("\tmov %%rax, %s", get_regx64(ir->dst));
             break;
         case IR_RETURN:
             emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));

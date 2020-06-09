@@ -30,6 +30,8 @@ typedef enum {
     ND_NUM,
     ND_ADD,
     ND_SUB,
+    ND_MUL,
+    ND_DIV,
 } NodeKind;
 typedef struct Node Node;
 struct Node {
@@ -48,6 +50,8 @@ typedef enum {
     IR_FREE,
     IR_ADD,
     IR_SUB,
+    IR_MUL,
+    IR_DIV,
 } IRKind;
 
 typedef struct Operand Operand;
