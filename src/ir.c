@@ -8,6 +8,11 @@ Operand *new_operand(OperandKind kind) {
     op->id = opp++;
     return op;
 }
+Operand *new_symbol(Var *var) {
+    Operand *op = new_operand(OP_SYM);
+    op->var = var;
+    return op;
+}
 
 IR *new_ir(IR *cur, IRKind kind, Operand *lhs, Operand *rhs, Operand *dst) {
     IR *ir = calloc(1, sizeof(IR));
@@ -25,8 +30,9 @@ Operand *irgen_addr(IR *cur, IR **code, Node *node) {
     if (node->kind != ND_VAR)
         error_tok(node->tok, "not an lvalue");
 
-    cur = new_ir(cur, IR_STACK_OFFSET, NULL, NULL, new_operand(OP_VAL));
-    cur->val = node->var->offset;
+    Operand *sym = new_symbol(node->var);
+    Operand *dst = new_operand(OP_VAL);
+    cur = new_ir(cur, IR_ADDR, sym, NULL, dst);
     *code = cur;
     return cur->dst;
 }

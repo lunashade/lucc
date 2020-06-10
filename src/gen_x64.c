@@ -40,13 +40,22 @@ static void kill(Operand *op) {
     op->reg->used = false;
 }
 
+static void calc_stacksize(Function *func) {
+    int offset = 0;
+    for (Var *var = func->locals; var; var = var->next) {
+        offset += 8;
+        var->offset = offset;
+    }
+    func->stacksize = align_to(offset, 16);
+}
+
 static void alloc_regs_x64(IR *ir) {
     for (; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
             break;
         case IR_IMM:
-        case IR_STACK_OFFSET:
+        case IR_ADDR:
             alloc(ir->dst);
             break;
         case IR_STORE:
@@ -80,6 +89,7 @@ static void alloc_regs_x64(IR *ir) {
 }
 
 void codegen_x64(Function *func) {
+    calc_stacksize(func);
     alloc_regs_x64(func->irs);
 
     if (opt_dump_ir2) {
@@ -102,8 +112,8 @@ void codegen_x64(Function *func) {
         case IR_IMM:
             emitfln("\tmov $%lu, %s", ir->val, get_regx64(ir->dst));
             break;
-        case IR_STACK_OFFSET:
-            emitfln("\tlea %d(%%rbp), %s", -ir->val, get_regx64(ir->dst));
+        case IR_ADDR:
+            emitfln("\tlea %d(%%rbp), %s", -ir->lhs->var->offset, get_regx64(ir->dst));
             break;
         case IR_LOAD:
             emitfln("\tmov (%s), %s", get_regx64(ir->lhs), get_regx64(ir->dst));

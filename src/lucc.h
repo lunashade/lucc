@@ -47,7 +47,7 @@ typedef enum {
     IR_NOP,
     IR_IMM,
     IR_MOV,
-    IR_STACK_OFFSET,
+    IR_ADDR,
     IR_LOAD,
     IR_STORE,
     IR_RETURN,
@@ -81,6 +81,7 @@ typedef struct IR IR;
 extern bool opt_dump_ir1;
 extern bool opt_dump_ir2;
 extern TargetArch opt_target;
+int align_to(int n, int align);
 
 //
 // tokenize.c

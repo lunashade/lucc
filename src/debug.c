@@ -16,7 +16,7 @@ void print_ir(IR *ir) {
         ENUMDUMP(IR_NOP)
         ENUMDUMP(IR_IMM)
         ENUMDUMP(IR_MOV)
-        ENUMDUMP(IR_STACK_OFFSET)
+        ENUMDUMP(IR_ADDR)
         ENUMDUMP(IR_LOAD)
         ENUMDUMP(IR_STORE)
         ENUMDUMP(IR_RETURN)

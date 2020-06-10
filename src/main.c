@@ -62,13 +62,6 @@ int main(int argc, char **argv) {
     Token *tok = tokenize(input);
     Function *func = parse(tok);
 
-    int offset = 0;
-    for (Var *var = func->locals; var; var = var->next) {
-        offset += 8;
-        var->offset = offset;
-    }
-    func->stacksize = align_to(offset, 16);
-
     irgen(func);
 
     if (opt_dump_ir1) {
