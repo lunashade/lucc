@@ -43,4 +43,5 @@ assert 0 'return 0>=1;'
 assert 3 '1; 2; return 3;'
 assert 3 '1; return 3; 2;'
 assert 10 '1;2;3;4;5;6;7;8;9;return 10;11;12;13;14;'
+assert 4 'a=4; return a;'
 echo "ok"

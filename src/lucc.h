@@ -39,6 +39,7 @@ Token *tokenize(char *);
 
 typedef enum {
     ND_NUM,       // num
+    ND_VAR,       // variable
     ND_ADD,       // +
     ND_SUB,       // -
     ND_MUL,       // *
@@ -47,6 +48,7 @@ typedef enum {
     ND_NE,        // !=
     ND_LT,        // <
     ND_LE,        // <=
+    ND_ASSIGN,    // =
     ND_EXPR_STMT, // expression statement
     ND_RETURN,    // return statement
 } NodeKind;
@@ -57,6 +59,7 @@ struct Node {
     Node *lhs, *rhs;
     Node *next;
     long val; // ND_NUM
+    int offset;
 };
 Node *parse(Token *);
 
@@ -64,6 +67,9 @@ typedef enum {
     IR_NOP,
     IR_IMM,
     IR_MOV,
+    IR_STACK_OFFSET,
+    IR_LOAD,
+    IR_STORE,
     IR_RETURN,
     IR_FREE,
     IR_ADD,

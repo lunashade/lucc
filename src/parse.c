@@ -2,6 +2,7 @@
 
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
+static Node *assign(Token **rest, Token *tok);
 static Node *equality(Token **rest, Token *tok);
 static Node *relational(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
@@ -51,7 +52,7 @@ Node *new_number(long val, Token *tok) {
 Node *parse(Token *tok) {
     Node head = {};
     Node *cur = &head;
-    for (;tok->kind != TK_EOF;) {
+    for (; tok->kind != TK_EOF;) {
         cur = cur->next = stmt(&tok, tok);
     }
     if (tok->kind != TK_EOF)
@@ -72,8 +73,18 @@ static Node *stmt(Token **rest, Token *tok) {
     return node;
 }
 
-// expr = equality
-static Node *expr(Token **rest, Token *tok) { return equality(rest, tok); }
+// expr = assign
+static Node *expr(Token **rest, Token *tok) { return assign(rest, tok); }
+// assign = equality ("=" assign)?
+static Node *assign(Token **rest, Token *tok) {
+    Node *node = equality(&tok, tok);
+    if (equal(tok, "=")) {
+        Token *op = tok;
+        node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next), op);
+    }
+    *rest = tok;
+    return node;
+}
 
 // equality = relational ("==" relational | "!=" relational)*
 static Node *equality(Token **rest, Token *tok) {
@@ -176,11 +187,17 @@ static Node *unary(Token **rest, Token *tok) {
     return primary(rest, tok);
 }
 
-// primary = num | "(" expr ")"
+// primary = num | ident | "(" expr ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
         *rest = skip(tok, ")");
+        return node;
+    }
+    if (tok->kind == TK_IDENT) {
+        Node *node = new_node(ND_VAR, tok);
+        node->offset = (tok->loc[0] - 'a' + 1) * 8;
+        *rest = tok->next;
         return node;
     }
     Node *node = new_number(get_number(tok), tok);
