@@ -127,10 +127,12 @@ void codegen_x64(IR *ir) {
             break;
         case IR_RETURN:
             emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));
-            emitfln("\tret");
+            emitfln("\tjmp .L.return");
             break;
         default:
             error("unknown IR operator");
         }
     }
+    emitfln(".L.return:");
+    emitfln("\tret");
 }

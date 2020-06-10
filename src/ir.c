@@ -76,10 +76,29 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     error_tok(node->tok, "unknown node");
 }
 
+void irgen_stmt(IR *cur, IR **code, Node *node) {
+    switch (node->kind) {
+    default:
+        error_tok(node->tok, "not a statement node");
+    case ND_EXPR_STMT: {
+        Operand *ret = irgen_expr(cur, code, node->lhs);
+        return;
+    }
+    case ND_RETURN: {
+        Operand *ret = irgen_expr(cur, &cur, node->lhs);
+        cur = new_ir(cur, IR_RETURN, ret, NULL, NULL);
+        *code = cur;
+        return;
+    }
+    }
+}
+
 IR *irgen(Node *node) {
     IR head = {};
     IR *cur = &head;
-    Operand *ret = irgen_expr(cur, &cur, node);
-    new_ir(cur, IR_RETURN, ret, NULL, NULL);
+    Operand *ret;
+    for (Node *n = node; n; n = n->next) {
+        irgen_stmt(cur, &cur, n);
+    }
     return head.next;
 }

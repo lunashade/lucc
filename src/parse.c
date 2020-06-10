@@ -1,5 +1,6 @@
 #include "lucc.h"
 
+static Node *stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
 static Node *equality(Token **rest, Token *tok);
 static Node *relational(Token **rest, Token *tok);
@@ -29,6 +30,11 @@ Node *new_node(NodeKind kind, Token *tok) {
     node->tok = tok;
     return node;
 }
+Node *new_unary(NodeKind kind, Node *lhs, Token *tok) {
+    Node *node = new_node(kind, tok);
+    node->lhs = lhs;
+    return node;
+}
 Node *new_binary(NodeKind kind, Node *lhs, Node *rhs, Token *tok) {
     Node *node = new_node(kind, tok);
     node->lhs = lhs;
@@ -41,13 +47,31 @@ Node *new_number(long val, Token *tok) {
     return node;
 }
 
-// program = expr
+// program = stmt*
 Node *parse(Token *tok) {
-    Node *node = expr(&tok, tok);
+    Node head = {};
+    Node *cur = &head;
+    for (;tok->kind != TK_EOF;) {
+        cur = cur->next = stmt(&tok, tok);
+    }
     if (tok->kind != TK_EOF)
         error_tok(tok, "extra tokens");
+    return head.next;
+}
+
+// stmt = "return" expr ";"
+//      | expr ";"
+static Node *stmt(Token **rest, Token *tok) {
+    if (equal(tok, "return")) {
+        Node *node = new_unary(ND_RETURN, expr(&tok, tok->next), tok);
+        *rest = skip(tok, ";");
+        return node;
+    }
+    Node *node = new_unary(ND_EXPR_STMT, expr(&tok, tok), tok);
+    *rest = skip(tok, ";");
     return node;
 }
+
 // expr = equality
 static Node *expr(Token **rest, Token *tok) { return equality(rest, tok); }
 

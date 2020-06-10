@@ -12,6 +12,9 @@ static int is_multipunct(char *p) {
     return 0;
 }
 
+static bool is_alpha(char p) { return p == '_' || ('a' <= p && p <= 'z'); }
+static bool is_alnum(char p) { return is_alpha(p) || ('0' <= p && p <= '9'); }
+
 noreturn void error(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -62,6 +65,14 @@ Token *tokenize(char *input) {
         if (is_multipunct(p)) {
             int len = is_multipunct(p);
             cur = new_token(cur, TK_RESERVED, p, len);
+            p += cur->len;
+            continue;
+        }
+        if (is_alpha(*p)) {
+            char *q = p;
+            while (is_alnum(*q))
+                q++;
+            cur = new_token(cur, TK_IDENT, p, q - p);
             p += cur->len;
             continue;
         }

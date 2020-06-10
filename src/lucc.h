@@ -20,6 +20,7 @@ extern TargetArch opt_target;
 typedef enum {
     TK_EOF,
     TK_NUM,
+    TK_IDENT,
     TK_RESERVED,
 } TokenKind;
 typedef struct Token Token;
@@ -36,21 +37,24 @@ noreturn void error_tok(Token *, char *, ...);
 Token *tokenize(char *);
 
 typedef enum {
-    ND_NUM, // num
-    ND_ADD, // +
-    ND_SUB, // -
-    ND_MUL, // *
-    ND_DIV, // /
-    ND_EQ,  // ==
-    ND_NE,  // !=
-    ND_LT,  // <
-    ND_LE,  // <=
+    ND_NUM,       // num
+    ND_ADD,       // +
+    ND_SUB,       // -
+    ND_MUL,       // *
+    ND_DIV,       // /
+    ND_EQ,        // ==
+    ND_NE,        // !=
+    ND_LT,        // <
+    ND_LE,        // <=
+    ND_EXPR_STMT, // expression statement
+    ND_RETURN,    // return statement
 } NodeKind;
 typedef struct Node Node;
 struct Node {
     NodeKind kind;
     Token *tok;
     Node *lhs, *rhs;
+    Node *next;
     long val; // ND_NUM
 };
 Node *parse(Token *);
