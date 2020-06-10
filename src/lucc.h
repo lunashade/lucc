@@ -72,8 +72,8 @@ typedef struct Var Var;
 typedef struct Node Node;
 typedef struct Function Function;
 typedef struct Operand Operand;
+typedef struct Register Register;
 typedef struct IR IR;
-
 
 //
 // main.c
@@ -130,11 +130,14 @@ Function *parse(Token *);
 //
 // ir.c
 //
+struct Register {
+    char *name;
+    bool used;
+};
 struct Operand {
     OperandKind kind;
     int id;
-    int reg;
-    char *name;
+    Register *reg;
     Var *var;
 };
 struct IR {

@@ -7,24 +7,28 @@ void emitfln(char *fmt, ...) {
     fprintf(stdout, "\n");
 }
 
-static char *reg_x64[] = {"INVALID", "%r10", "%r11", "%r12",
-                          "%r13",    "%r14", "%r15"};
-static bool used[7] = {true}; // INVALID always used
+static Register *R10 = &(Register){"%r10"};
+static Register *R11 = &(Register){"%r11"};
+static Register *R12 = &(Register){"%r12"};
+static Register *R13 = &(Register){"%r13"};
+static Register *R14 = &(Register){"%r14"};
+static Register *R15 = &(Register){"%r15"};
 
 char *get_regx64(Operand *op) {
-    assert(op->reg > 0 && op->reg < 7);
-    return reg_x64[op->reg];
+    assert(op->reg);
+    return op->reg->name;
 }
 
 static void alloc(Operand *op) {
     if (op->reg)
         return;
 
+    Register *reg_x64[] = {R10, R11, R12, R13, R14, R15};
     for (int i = 1; i < sizeof(reg_x64) / sizeof(*reg_x64); i++) {
-        if (used[i])
+        if (reg_x64[i]->used)
             continue;
-        used[i] = true;
-        op->reg = i;
+        reg_x64[i]->used = true;
+        op->reg = reg_x64[i];
         return;
     }
     error("register exhausted");
@@ -32,8 +36,8 @@ static void alloc(Operand *op) {
 static void kill(Operand *op) {
     assert(op);
     assert(op->reg);
-    assert(used[op->reg]);
-    used[op->reg] = false;
+    assert(op->reg->used);
+    op->reg->used = false;
 }
 
 static void alloc_regs_x64(IR *ir) {
