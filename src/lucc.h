@@ -32,6 +32,7 @@ struct Token {
 
     long val;
 };
+bool equal(Token *tok, char *p);
 noreturn void error(char *, ...);
 noreturn void error_tok(Token *, char *, ...);
 Token *tokenize(char *);
