@@ -2,8 +2,9 @@
 
 static int opp;
 
-Operand *new_operand(void) {
+Operand *new_operand(OperandKind kind) {
     Operand *op = calloc(1, sizeof(Operand));
+    op->kind = kind;
     op->id = opp++;
     return op;
 }
@@ -22,7 +23,7 @@ IR *new_ir(IR *cur, IRKind kind, Operand *lhs, Operand *rhs, Operand *dst) {
 
 Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     if (node->kind == ND_NUM) {
-        cur = new_ir(cur, IR_IMM, NULL, NULL, new_operand());
+        cur = new_ir(cur, IR_IMM, NULL, NULL, new_operand(OP_VAL));
         cur->val = node->val;
         *code = cur;
         return cur->dst;
@@ -30,7 +31,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
 
     Operand *lhs = irgen_expr(cur, &cur, node->lhs);
     Operand *rhs = irgen_expr(cur, &cur, node->rhs);
-    Operand *dst = new_operand();
+    Operand *dst = new_operand(OP_VAL);
     switch (node->kind) {
     case ND_ADD:
         cur = new_ir(cur, IR_ADD, lhs, rhs, dst);

@@ -75,10 +75,16 @@ typedef enum {
     IR_LE,
 } IRKind;
 
+typedef enum {
+    OP_VAL,
+    OP_SYM,
+} OperandKind;
 typedef struct Operand Operand;
 struct Operand {
+    OperandKind kind;
     int id;
     int reg;
+    char *name;
 };
 typedef struct IR IR;
 struct IR {
