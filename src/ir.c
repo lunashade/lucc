@@ -2,8 +2,9 @@
 
 static int opp;
 
-Operand *new_operand(void) {
+Operand *new_operand(OperandKind kind) {
     Operand *op = calloc(1, sizeof(Operand));
+    op->kind = kind;
     op->id = opp++;
     return op;
 }
@@ -20,17 +21,44 @@ IR *new_ir(IR *cur, IRKind kind, Operand *lhs, Operand *rhs, Operand *dst) {
     return ir;
 }
 
+Operand *irgen_addr(IR *cur, IR **code, Node *node) {
+    if (node->kind != ND_VAR)
+        error_tok(node->tok, "not an lvalue");
+
+    cur = new_ir(cur, IR_STACK_OFFSET, NULL, NULL, new_operand(OP_VAL));
+    cur->val = node->var->offset;
+    *code = cur;
+    return cur->dst;
+}
+
 Operand *irgen_expr(IR *cur, IR **code, Node *node) {
-    if (node->kind == ND_NUM) {
-        cur = new_ir(cur, IR_IMM, NULL, NULL, new_operand());
+    switch (node->kind) {
+    case ND_NUM: {
+        cur = new_ir(cur, IR_IMM, NULL, NULL, new_operand(OP_VAL));
         cur->val = node->val;
         *code = cur;
         return cur->dst;
     }
+    case ND_ASSIGN: {
+        Operand *lhs = irgen_addr(cur, &cur, node->lhs);
+        Operand *rhs = irgen_expr(cur, &cur, node->rhs);
+        Operand *dst = new_operand(OP_VAL);
+        cur = new_ir(cur, IR_STORE, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, lhs, NULL, NULL);
+        *code = cur;
+        return dst;
+    }
+    case ND_VAR: {
+        Operand *lhs = irgen_addr(cur, &cur, node);
+        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_operand(OP_VAL));
+        *code = cur;
+        return cur->dst;
+    }
+    }
 
     Operand *lhs = irgen_expr(cur, &cur, node->lhs);
     Operand *rhs = irgen_expr(cur, &cur, node->rhs);
-    Operand *dst = new_operand();
+    Operand *dst = new_operand(OP_VAL);
     switch (node->kind) {
     case ND_ADD:
         cur = new_ir(cur, IR_ADD, lhs, rhs, dst);
@@ -95,12 +123,11 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
     }
 }
 
-IR *irgen(Node *node) {
+void irgen(Function *func) {
     IR head = {};
     IR *cur = &head;
-    Operand *ret;
-    for (Node *n = node; n; n = n->next) {
+    for (Node *n = func->nodes; n; n = n->next) {
         irgen_stmt(cur, &cur, n);
     }
-    return head.next;
+    func->irs = head.next;
 }

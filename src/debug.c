@@ -15,6 +15,12 @@ void print_ir(IR *ir) {
     switch (ir->kind) {
         ENUMDUMP(IR_NOP)
         ENUMDUMP(IR_IMM)
+        ENUMDUMP(IR_MOV)
+        ENUMDUMP(IR_STACK_OFFSET)
+        ENUMDUMP(IR_LOAD)
+        ENUMDUMP(IR_STORE)
+        ENUMDUMP(IR_RETURN)
+        ENUMDUMP(IR_FREE)
         ENUMDUMP(IR_ADD)
         ENUMDUMP(IR_SUB)
         ENUMDUMP(IR_MUL)
@@ -23,9 +29,6 @@ void print_ir(IR *ir) {
         ENUMDUMP(IR_NE)
         ENUMDUMP(IR_LT)
         ENUMDUMP(IR_LE)
-        ENUMDUMP(IR_FREE)
-        ENUMDUMP(IR_MOV)
-        ENUMDUMP(IR_RETURN)
     }
     fprintf(stderr, "(%d)", ir->kind);
     if (ir->lhs) {

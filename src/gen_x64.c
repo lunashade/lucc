@@ -30,7 +30,8 @@ static void alloc(Operand *op) {
     error("register exhausted");
 }
 static void kill(Operand *op) {
-    assert(op && op->reg);
+    assert(op);
+    assert(op->reg);
     assert(used[op->reg]);
     used[op->reg] = false;
 }
@@ -41,9 +42,15 @@ static void alloc_regs_x64(IR *ir) {
         case IR_NOP:
             break;
         case IR_IMM:
+        case IR_STACK_OFFSET:
             alloc(ir->dst);
             break;
+        case IR_STORE:
+            alloc(ir->rhs);
+            ir->dst->reg = ir->rhs->reg;
+            break;
         case IR_MOV:
+        case IR_LOAD:
         case IR_ADD:
         case IR_SUB:
         case IR_MUL:
@@ -68,24 +75,37 @@ static void alloc_regs_x64(IR *ir) {
     }
 }
 
-void codegen_x64(IR *ir) {
-    alloc_regs_x64(ir);
+void codegen_x64(Function *func) {
+    alloc_regs_x64(func->irs);
 
     if (opt_dump_ir2) {
         fprintf(stderr, "dump ir 2\n");
-        for (IR *tmp = ir; tmp; tmp = tmp->next) {
+        for (IR *tmp = func->irs; tmp; tmp = tmp->next) {
             print_ir(tmp);
         }
     }
 
     emitfln(".globl main");
     emitfln("main:");
-    for (; ir; ir = ir->next) {
+    emitfln("\tpush %%rbp");
+    emitfln("\tmov %%rsp, %%rbp");
+    emitfln("\tsub $%d, %%rsp", func->stacksize);
+
+    for (IR *ir = func->irs; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
             break;
         case IR_IMM:
             emitfln("\tmov $%lu, %s", ir->val, get_regx64(ir->dst));
+            break;
+        case IR_STACK_OFFSET:
+            emitfln("\tlea %d(%%rbp), %s", -ir->val, get_regx64(ir->dst));
+            break;
+        case IR_LOAD:
+            emitfln("\tmov (%s), %s", get_regx64(ir->lhs), get_regx64(ir->dst));
+            break;
+        case IR_STORE:
+            emitfln("\tmov %s, (%s)", get_regx64(ir->rhs), get_regx64(ir->lhs));
             break;
         case IR_MOV:
             emitfln("\tmov %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
@@ -134,5 +154,7 @@ void codegen_x64(IR *ir) {
         }
     }
     emitfln(".L.return:");
+    emitfln("\tmov %%rbp, %%rsp");
+    emitfln("\tpop %%rbp");
     emitfln("\tret");
 }

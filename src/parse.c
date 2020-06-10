@@ -2,6 +2,7 @@
 
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
+static Node *assign(Token **rest, Token *tok);
 static Node *equality(Token **rest, Token *tok);
 static Node *relational(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
@@ -22,6 +23,11 @@ long get_number(Token *tok) {
     if (tok->kind != TK_NUM)
         error_tok(tok, "number expected");
     return tok->val;
+}
+char *get_ident(Token *tok) {
+    if (tok->kind != TK_IDENT)
+        error_tok(tok, "identifier expected");
+    return strndup(tok->loc, tok->len);
 }
 
 Node *new_node(NodeKind kind, Token *tok) {
@@ -47,16 +53,37 @@ Node *new_number(long val, Token *tok) {
     return node;
 }
 
+static Var *locals;
+Var *find_var(Token *tok) {
+    for (Var *var = locals; var; var = var->next) {
+        if (strlen(var->name) == tok->len &&
+            !strncmp(tok->loc, var->name, tok->len))
+            return var;
+    }
+    return NULL;
+}
+Var *new_lvar(char *name) {
+    Var *var = calloc(1, sizeof(Var));
+    var->next = locals;
+    var->name = name;
+    locals = var;
+    return var;
+}
+
 // program = stmt*
-Node *parse(Token *tok) {
+Function *parse(Token *tok) {
+    Function *func = calloc(1, sizeof(Function));
+    locals = NULL;
     Node head = {};
     Node *cur = &head;
-    for (;tok->kind != TK_EOF;) {
+    for (; tok->kind != TK_EOF;) {
         cur = cur->next = stmt(&tok, tok);
     }
+    func->nodes = head.next;
+    func->locals = locals;
     if (tok->kind != TK_EOF)
         error_tok(tok, "extra tokens");
-    return head.next;
+    return func;
 }
 
 // stmt = "return" expr ";"
@@ -72,8 +99,18 @@ static Node *stmt(Token **rest, Token *tok) {
     return node;
 }
 
-// expr = equality
-static Node *expr(Token **rest, Token *tok) { return equality(rest, tok); }
+// expr = assign
+static Node *expr(Token **rest, Token *tok) { return assign(rest, tok); }
+// assign = equality ("=" assign)?
+static Node *assign(Token **rest, Token *tok) {
+    Node *node = equality(&tok, tok);
+    if (equal(tok, "=")) {
+        Token *op = tok;
+        node = new_binary(ND_ASSIGN, node, assign(&tok, tok->next), op);
+    }
+    *rest = tok;
+    return node;
+}
 
 // equality = relational ("==" relational | "!=" relational)*
 static Node *equality(Token **rest, Token *tok) {
@@ -176,11 +213,22 @@ static Node *unary(Token **rest, Token *tok) {
     return primary(rest, tok);
 }
 
-// primary = num | "(" expr ")"
+// primary = num | ident | "(" expr ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
         *rest = skip(tok, ")");
+        return node;
+    }
+    if (tok->kind == TK_IDENT) {
+        Node *node = new_node(ND_VAR, tok);
+        Var *var = find_var(tok);
+        if (var) {
+            node->var = var;
+        } else {
+            node->var = new_lvar(get_ident(tok));
+        }
+        *rest = tok->next;
         return node;
     }
     Node *node = new_number(get_number(tok), tok);

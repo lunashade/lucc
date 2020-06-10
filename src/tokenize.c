@@ -2,6 +2,7 @@
 
 static char *current_input;
 static char *MULTIPUNCT[] = {"==", "<=", ">=", "!="};
+static char *KEYWORDS[] = {"return"};
 
 static bool startswith(char *p, char *s) { return !strncmp(p, s, strlen(s)); }
 static int is_multipunct(char *p) {
@@ -12,8 +13,18 @@ static int is_multipunct(char *p) {
     return 0;
 }
 
-static bool is_alpha(char p) { return p == '_' || ('a' <= p && p <= 'z'); }
+static bool is_alpha(char p) {
+    return p == '_' || ('a' <= p && p <= 'z') || ('A' <= p && p <= 'Z');
+}
 static bool is_alnum(char p) { return is_alpha(p) || ('0' <= p && p <= '9'); }
+
+static bool is_keyword(Token *tok) {
+    for (int i = 0; i < sizeof(KEYWORDS) / sizeof(*KEYWORDS); i++) {
+        if (equal(tok, KEYWORDS[i]))
+            return true;
+    }
+    return false;
+}
 
 noreturn void error(char *fmt, ...) {
     va_list ap;
@@ -49,6 +60,12 @@ Token *new_token(Token *cur, TokenKind kind, char *loc, int len) {
     tok->len = len;
     cur->next = tok;
     return tok;
+}
+
+void convert_keywords(Token *tok) {
+    for (Token *t = tok; t->kind != TK_EOF; t = t->next)
+        if (t->kind == TK_IDENT && is_keyword(t))
+            t->kind = TK_RESERVED;
 }
 
 Token *tokenize(char *input) {
@@ -92,5 +109,8 @@ Token *tokenize(char *input) {
         error_at(p, "unknown character");
     }
     cur = new_token(cur, TK_EOF, p, 0);
+
+    // preprocess
+    convert_keywords(head.next);
     return head.next;
 }
