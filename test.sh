@@ -1,5 +1,5 @@
 #!/bin/bash
-BIN=./$1
+BIN=./$@
 
 function assert {
     want=$1

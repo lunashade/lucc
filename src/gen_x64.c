@@ -30,7 +30,8 @@ static void alloc(Operand *op) {
     error("register exhausted");
 }
 static void kill(Operand *op) {
-    assert(op && op->reg);
+    assert(op);
+    assert(op->reg);
     assert(used[op->reg]);
     used[op->reg] = false;
 }
