@@ -13,7 +13,9 @@ static int is_multipunct(char *p) {
     return 0;
 }
 
-static bool is_alpha(char p) { return p == '_' || ('a' <= p && p <= 'z'); }
+static bool is_alpha(char p) {
+    return p == '_' || ('a' <= p && p <= 'z') || ('A' <= p && p <= 'Z');
+}
 static bool is_alnum(char p) { return is_alpha(p) || ('0' <= p && p <= '9'); }
 
 static bool is_keyword(Token *tok) {

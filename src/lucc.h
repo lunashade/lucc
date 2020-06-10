@@ -1,3 +1,7 @@
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <assert.h>
 #include <ctype.h>
 #include <stdarg.h>
@@ -7,15 +11,14 @@
 #include <stdnoreturn.h>
 #include <string.h>
 
-extern bool opt_dump_ir1;
-extern bool opt_dump_ir2;
-
+//
+// typedef
+//
 typedef enum {
     TARGET_X86_64,
     TARGET_RISCV,
     TARGET_LLVM,
 } TargetArch;
-extern TargetArch opt_target;
 
 typedef enum {
     TK_EOF,
@@ -23,19 +26,6 @@ typedef enum {
     TK_IDENT,
     TK_RESERVED,
 } TokenKind;
-typedef struct Token Token;
-struct Token {
-    TokenKind kind;
-    Token *next;
-    char *loc;
-    int len;
-
-    long val;
-};
-bool equal(Token *tok, char *p);
-noreturn void error(char *, ...);
-noreturn void error_tok(Token *, char *, ...);
-Token *tokenize(char *);
 
 typedef enum {
     ND_NUM,       // num
@@ -52,16 +42,6 @@ typedef enum {
     ND_EXPR_STMT, // expression statement
     ND_RETURN,    // return statement
 } NodeKind;
-typedef struct Node Node;
-struct Node {
-    NodeKind kind;
-    Token *tok;
-    Node *lhs, *rhs;
-    Node *next;
-    long val; // ND_NUM
-    int offset;
-};
-Node *parse(Token *);
 
 typedef enum {
     IR_NOP,
@@ -86,14 +66,77 @@ typedef enum {
     OP_VAL,
     OP_SYM,
 } OperandKind;
+
+typedef struct Token Token;
+typedef struct Var Var;
+typedef struct Node Node;
+typedef struct Function Function;
 typedef struct Operand Operand;
+typedef struct IR IR;
+
+
+//
+// main.c
+//
+extern bool opt_dump_ir1;
+extern bool opt_dump_ir2;
+extern TargetArch opt_target;
+
+//
+// tokenize.c
+//
+struct Token {
+    TokenKind kind;
+    Token *next;
+    char *loc;
+    int len;
+
+    long val;
+};
+
+noreturn void error(char *, ...);
+noreturn void error_tok(Token *, char *, ...);
+Token *tokenize(char *);
+
+//
+// parse.c
+//
+struct Var {
+    Var *next;
+    char *name;
+    int len;
+    int offset;
+};
+
+struct Node {
+    NodeKind kind;
+    Token *tok;
+    Node *lhs, *rhs;
+    Node *next;
+    long val; // ND_NUM
+    Var *var;
+};
+
+struct Function {
+    Node *nodes;
+    IR *irs;
+    Var *locals;
+    int stacksize;
+};
+
+bool equal(Token *tok, char *p);
+Function *parse(Token *);
+
+//
+// ir.c
+//
 struct Operand {
     OperandKind kind;
     int id;
     int reg;
     char *name;
+    Var *var;
 };
-typedef struct IR IR;
 struct IR {
     IR *next;
     IRKind kind;
@@ -101,7 +144,15 @@ struct IR {
     long val;
 };
 
-IR *irgen(Node *);
-void codegen_x64(IR *ir);
+void irgen(Function *);
+
+//
+// gen_x64.c
+//
+void codegen_x64(Function *);
 char *get_regx64(Operand *);
+
+//
+// debug.c
+//
 void print_ir(IR *);

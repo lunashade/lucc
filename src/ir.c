@@ -26,7 +26,7 @@ Operand *irgen_addr(IR *cur, IR **code, Node *node) {
         error_tok(node->tok, "not an lvalue");
 
     cur = new_ir(cur, IR_STACK_OFFSET, NULL, NULL, new_operand(OP_VAL));
-    cur->val = node->offset;
+    cur->val = node->var->offset;
     *code = cur;
     return cur->dst;
 }
@@ -123,12 +123,11 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
     }
 }
 
-IR *irgen(Node *node) {
+void irgen(Function *func) {
     IR head = {};
     IR *cur = &head;
-    Operand *ret;
-    for (Node *n = node; n; n = n->next) {
+    for (Node *n = func->nodes; n; n = n->next) {
         irgen_stmt(cur, &cur, n);
     }
-    return head.next;
+    func->irs = head.next;
 }

@@ -75,12 +75,12 @@ static void alloc_regs_x64(IR *ir) {
     }
 }
 
-void codegen_x64(IR *ir) {
-    alloc_regs_x64(ir);
+void codegen_x64(Function *func) {
+    alloc_regs_x64(func->irs);
 
     if (opt_dump_ir2) {
         fprintf(stderr, "dump ir 2\n");
-        for (IR *tmp = ir; tmp; tmp = tmp->next) {
+        for (IR *tmp = func->irs; tmp; tmp = tmp->next) {
             print_ir(tmp);
         }
     }
@@ -89,9 +89,9 @@ void codegen_x64(IR *ir) {
     emitfln("main:");
     emitfln("\tpush %%rbp");
     emitfln("\tmov %%rsp, %%rbp");
-    emitfln("\tsub $208, %%rsp");
+    emitfln("\tsub $%d, %%rsp", func->stacksize);
 
-    for (; ir; ir = ir->next) {
+    for (IR *ir = func->irs; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
             break;

@@ -24,6 +24,11 @@ long get_number(Token *tok) {
         error_tok(tok, "number expected");
     return tok->val;
 }
+char *get_ident(Token *tok) {
+    if (tok->kind != TK_IDENT)
+        error_tok(tok, "identifier expected");
+    return strndup(tok->loc, tok->len);
+}
 
 Node *new_node(NodeKind kind, Token *tok) {
     Node *node = calloc(1, sizeof(Node));
@@ -48,16 +53,37 @@ Node *new_number(long val, Token *tok) {
     return node;
 }
 
+static Var *locals;
+Var *find_var(Token *tok) {
+    for (Var *var = locals; var; var = var->next) {
+        if (strlen(var->name) == tok->len &&
+            !strncmp(tok->loc, var->name, tok->len))
+            return var;
+    }
+    return NULL;
+}
+Var *new_lvar(char *name) {
+    Var *var = calloc(1, sizeof(Var));
+    var->next = locals;
+    var->name = name;
+    locals = var;
+    return var;
+}
+
 // program = stmt*
-Node *parse(Token *tok) {
+Function *parse(Token *tok) {
+    Function *func = calloc(1, sizeof(Function));
+    locals = NULL;
     Node head = {};
     Node *cur = &head;
     for (; tok->kind != TK_EOF;) {
         cur = cur->next = stmt(&tok, tok);
     }
+    func->nodes = head.next;
+    func->locals = locals;
     if (tok->kind != TK_EOF)
         error_tok(tok, "extra tokens");
-    return head.next;
+    return func;
 }
 
 // stmt = "return" expr ";"
@@ -196,7 +222,12 @@ static Node *primary(Token **rest, Token *tok) {
     }
     if (tok->kind == TK_IDENT) {
         Node *node = new_node(ND_VAR, tok);
-        node->offset = (tok->loc[0] - 'a' + 1) * 8;
+        Var *var = find_var(tok);
+        if (var) {
+            node->var = var;
+        } else {
+            node->var = new_lvar(get_ident(tok));
+        }
         *rest = tok->next;
         return node;
     }

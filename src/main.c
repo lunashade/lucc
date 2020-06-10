@@ -51,23 +51,36 @@ static void parse_args(int argc, char **argv) {
         error("no input");
 }
 
+int align_to(int n, int align) {
+    assert((align & (align - 1)) == 0);
+    return (n + align - 1) & ~(align - 1);
+}
+
 int main(int argc, char **argv) {
     parse_args(argc, argv);
 
     Token *tok = tokenize(input);
-    Node *node = parse(tok);
-    IR *ir = irgen(node);
+    Function *func = parse(tok);
+
+    int offset = 0;
+    for (Var *var = func->locals; var; var = var->next) {
+        offset += 8;
+        var->offset = offset;
+    }
+    func->stacksize = align_to(offset, 16);
+
+    irgen(func);
 
     if (opt_dump_ir1) {
         fprintf(stderr, "dump ir 1\n");
-        for (IR *tmp = ir; tmp; tmp = tmp->next) {
+        for (IR *tmp = func->irs; tmp; tmp = tmp->next) {
             print_ir(tmp);
         }
     }
 
     switch (opt_target) {
     case TARGET_X86_64:
-        codegen_x64(ir);
+        codegen_x64(func);
         break;
     default:
         error("unsupported target");
