@@ -81,7 +81,9 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
     default:
         error_tok(node->tok, "not a statement node");
     case ND_EXPR_STMT: {
-        Operand *ret = irgen_expr(cur, code, node->lhs);
+        Operand *ret = irgen_expr(cur, &cur, node->lhs);
+        cur = new_ir(cur, IR_FREE, ret, NULL, NULL);
+        *code = cur;
         return;
     }
     case ND_RETURN: {
