@@ -15,9 +15,19 @@ static Register *R13 = &(Register){"%r13"};
 static Register *R14 = &(Register){"%r14"};
 static Register *R15 = &(Register){"%r15"};
 
-char *get_regx64(Operand *op) {
-    assert(op->reg);
-    return op->reg->name;
+char *get_operand(Operand *op) {
+    switch (op->kind) {
+    case OP_REGISTER:
+        assert(op->reg);
+        return op->reg->name;
+    case OP_LABEL: {
+        char *buf = malloc(20 + strlen(op->prefix));
+        sprintf(buf, ".L%s%d", op->prefix, op->id);
+        return buf;
+    }
+    case OP_SYMBOL:
+        return op->var->name;
+    }
 }
 
 static void alloc(Operand *op) {
@@ -54,6 +64,11 @@ static void alloc_regs_x64(IR *ir) {
     for (; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
+        case IR_LABEL:
+        case IR_JMP:
+            break;
+        case IR_JMPIFZERO:
+            alloc(ir->rhs);
             break;
         case IR_IMM:
         case IR_ADDR:
@@ -110,58 +125,72 @@ void codegen_x64(Function *func) {
         switch (ir->kind) {
         case IR_NOP:
             break;
+        case IR_JMP:
+            assert(ir->lhs->kind == OP_LABEL);
+            emitfln("\tjmp %s", get_operand(ir->lhs));
+            break;
+        case IR_JMPIFZERO:
+            assert(ir->lhs->kind == OP_LABEL);
+            emitfln("\tcmp $0, %s", get_operand(ir->rhs));
+            emitfln("\tje %s", get_operand(ir->lhs));
+            break;
+        case IR_LABEL:
+            assert(ir->lhs->kind == OP_LABEL);
+            emitfln("%s:", get_operand(ir->lhs));
+            break;
         case IR_IMM:
-            emitfln("\tmov $%lu, %s", ir->val, get_regx64(ir->dst));
+            emitfln("\tmov $%lu, %s", ir->val, get_operand(ir->dst));
             break;
         case IR_ADDR:
-            emitfln("\tlea %d(%%rbp), %s", -ir->lhs->var->offset, get_regx64(ir->dst));
+            emitfln("\tlea %d(%%rbp), %s", -ir->lhs->var->offset,
+                    get_operand(ir->dst));
             break;
         case IR_LOAD:
-            emitfln("\tmov (%s), %s", get_regx64(ir->lhs), get_regx64(ir->dst));
+            emitfln("\tmov (%s), %s", get_operand(ir->lhs), get_operand(ir->dst));
             break;
         case IR_STORE:
-            emitfln("\tmov %s, (%s)", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tmov %s, (%s)", get_operand(ir->rhs), get_operand(ir->lhs));
             break;
         case IR_MOV:
-            emitfln("\tmov %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_ADD:
-            emitfln("\tadd %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            emitfln("\tadd %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_SUB:
-            emitfln("\tsub %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            emitfln("\tsub %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_MUL:
-            emitfln("\timul %s, %s", get_regx64(ir->rhs), get_regx64(ir->dst));
+            emitfln("\timul %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_DIV:
-            emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));
+            emitfln("\tmov %s, %%rax", get_operand(ir->lhs));
             emitfln("\tcqo");
-            emitfln("\tidiv %s", get_regx64(ir->rhs));
-            emitfln("\tmov %%rax, %s", get_regx64(ir->dst));
+            emitfln("\tidiv %s", get_operand(ir->rhs));
+            emitfln("\tmov %%rax, %s", get_operand(ir->dst));
             break;
         case IR_EQ:
-            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tcmp %s, %s", get_operand(ir->rhs), get_operand(ir->lhs));
             emitfln("\tsete %%al");
-            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            emitfln("\tmovzx %%al, %s", get_operand(ir->dst));
             break;
         case IR_NE:
-            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tcmp %s, %s", get_operand(ir->rhs), get_operand(ir->lhs));
             emitfln("\tsetne %%al");
-            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            emitfln("\tmovzx %%al, %s", get_operand(ir->dst));
             break;
         case IR_LT:
-            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tcmp %s, %s", get_operand(ir->rhs), get_operand(ir->lhs));
             emitfln("\tsetl %%al");
-            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            emitfln("\tmovzx %%al, %s", get_operand(ir->dst));
             break;
         case IR_LE:
-            emitfln("\tcmp %s, %s", get_regx64(ir->rhs), get_regx64(ir->lhs));
+            emitfln("\tcmp %s, %s", get_operand(ir->rhs), get_operand(ir->lhs));
             emitfln("\tsetle %%al");
-            emitfln("\tmovzx %%al, %s", get_regx64(ir->dst));
+            emitfln("\tmovzx %%al, %s", get_operand(ir->dst));
             break;
         case IR_RETURN:
-            emitfln("\tmov %s, %%rax", get_regx64(ir->lhs));
+            emitfln("\tmov %s, %%rax", get_operand(ir->lhs));
             emitfln("\tjmp .L.return");
             break;
         default:

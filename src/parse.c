@@ -88,7 +88,21 @@ Function *parse(Token *tok) {
 
 // stmt = "return" expr ";"
 //      | expr ";"
+//      | "if" "(" expr ")" stmt ("else" stmt)?
+//      | "while" "(" expr ")" stmt
+//      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
 static Node *stmt(Token **rest, Token *tok) {
+    if (equal(tok, "if")) {
+        Node *node = new_node(ND_IF, tok);
+        tok = skip(tok->next, "(");
+        node->cond = expr(&tok, tok);
+        tok = skip(tok, ")");
+        node->then = stmt(&tok, tok);
+        if (equal(tok, "else"))
+            node->els = stmt(&tok, tok->next);
+        *rest = tok;
+        return node;
+    }
     if (equal(tok, "return")) {
         Node *node = new_unary(ND_RETURN, expr(&tok, tok->next), tok);
         *rest = skip(tok, ";");

@@ -41,6 +41,8 @@ typedef enum {
     ND_ASSIGN,    // =
     ND_EXPR_STMT, // expression statement
     ND_RETURN,    // return statement
+    ND_IF,        // if statement
+    ND_FOR,       // for statement
 } NodeKind;
 
 typedef enum {
@@ -51,6 +53,9 @@ typedef enum {
     IR_LOAD,
     IR_STORE,
     IR_RETURN,
+    IR_JMP,
+    IR_JMPIFZERO,
+    IR_LABEL,
     IR_FREE,
     IR_ADD,
     IR_SUB,
@@ -63,8 +68,9 @@ typedef enum {
 } IRKind;
 
 typedef enum {
-    OP_REG,
-    OP_SYM,
+    OP_REGISTER, // register
+    OP_SYMBOL, // symbol
+    OP_LABEL, // label
 } OperandKind;
 
 typedef struct Token Token;
@@ -114,6 +120,7 @@ struct Node {
     Token *tok;
     Node *lhs, *rhs;
     Node *next;
+    Node *init, *cond, *inc, *then, *els;
     long val; // ND_NUM
     Var *var;
 };
@@ -140,6 +147,7 @@ struct Operand {
     int id;
     Register *reg;
     Var *var;
+    char *prefix; // label prefix
 };
 struct IR {
     IR *next;
@@ -154,9 +162,11 @@ void irgen(Function *);
 // gen_x64.c
 //
 void codegen_x64(Function *);
-char *get_regx64(Operand *);
+char *get_operand(Operand *);
 
 //
 // debug.c
 //
+void print_tokens(Token *);
+void print_nodes(Node *);
 void print_ir(IR *);

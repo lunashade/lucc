@@ -47,4 +47,8 @@ assert 4 'a=4; return a;'
 assert 4 'abc=4; return abc;'
 assert 2 'K=5; t_t = 2; abc=4; a123=123;return t_t;'
 assert 44 'a = b = 44; return a;'
+assert 42 'if (1) return 42; return 0;'
+assert 0 'if (0) return 42; return 0;'
+assert 42 'if (1) return 42; else return 0;'
+assert 0 'if (0) return 42; else return 0;'
 echo "ok"

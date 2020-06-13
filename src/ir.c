@@ -2,6 +2,7 @@
 
 static int reg_id;
 static int sym_id;
+static int label_id;
 
 Operand *new_operand(OperandKind kind) {
     Operand *op = calloc(1, sizeof(Operand));
@@ -9,14 +10,20 @@ Operand *new_operand(OperandKind kind) {
     return op;
 }
 Operand *new_register(void) {
-    Operand *op = new_operand(OP_REG);
+    Operand *op = new_operand(OP_REGISTER);
     op->id = reg_id++;
     return op;
 }
 Operand *new_symbol(Var *var) {
-    Operand *op = new_operand(OP_SYM);
+    Operand *op = new_operand(OP_SYMBOL);
     op->id = sym_id++;
     op->var = var;
+    return op;
+}
+Operand *new_label(char *prefix) {
+    Operand *op = new_operand(OP_LABEL);
+    op->id = label_id++;
+    op->prefix = prefix;
     return op;
 }
 
@@ -121,6 +128,21 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
     case ND_EXPR_STMT: {
         Operand *ret = irgen_expr(cur, &cur, node->lhs);
         cur = new_ir(cur, IR_FREE, ret, NULL, NULL);
+        *code = cur;
+        return;
+    }
+    case ND_IF: {
+        Operand *els = new_label("else");
+        Operand *end = new_label("end");
+        Operand *cond = irgen_expr(cur, &cur, node->cond);
+        cur = new_ir(cur, IR_JMPIFZERO, els, cond, NULL);
+        cur = new_ir(cur, IR_FREE, cond, NULL, NULL);
+        irgen_stmt(cur, &cur, node->then);
+        cur = new_ir(cur, IR_JMP, end, NULL, NULL);
+        cur = new_ir(cur, IR_LABEL, els, NULL, NULL);
+        if (node->els)
+            irgen_stmt(cur, &cur, node->els);
+        cur = new_ir(cur, IR_LABEL, end, NULL, NULL);
         *code = cur;
         return;
     }

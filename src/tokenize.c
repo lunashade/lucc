@@ -2,7 +2,7 @@
 
 static char *current_input;
 static char *MULTIPUNCT[] = {"==", "<=", ">=", "!="};
-static char *KEYWORDS[] = {"return"};
+static char *KEYWORDS[] = {"return", "if", "then", "else", "for", "while"};
 
 static bool startswith(char *p, char *s) { return !strncmp(p, s, strlen(s)); }
 static int is_multipunct(char *p) {
