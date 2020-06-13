@@ -75,7 +75,7 @@ void print_nodes(Node *node) {
         print_nodes(node->then);
         if (node->els)
             fprintf(stderr, "els: ");
-            print_nodes(node->els);
+        print_nodes(node->els);
         break;
     case ND_FOR:
         fprintf(stderr, "\n");
@@ -85,8 +85,8 @@ void print_nodes(Node *node) {
             print_nodes(node->cond);
         if (node->inc)
             print_nodes(node->inc);
-        if (node->then)
-            print_nodes(node->then);
+        print_nodes(node->then);
+        break;
     }
 }
 

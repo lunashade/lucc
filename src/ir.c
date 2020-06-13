@@ -131,6 +131,32 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
         *code = cur;
         return;
     }
+    case ND_FOR: {
+        Operand *begin = new_label("begin");
+        Operand *cont = new_label("continue");
+        Operand *end = new_label("end");
+
+        if (node->init) {
+            Operand *init = irgen_expr(cur, &cur, node->init);
+            cur = new_ir(cur, IR_FREE, init, NULL, NULL);
+        }
+        cur = new_ir(cur, IR_LABEL, begin, NULL, NULL);
+        if (node->cond) {
+            Operand *cond = irgen_expr(cur, &cur, node->cond);
+            cur = new_ir(cur, IR_JMPIFZERO, end, cond, NULL);
+            cur = new_ir(cur, IR_FREE, cond, NULL, NULL);
+        }
+        irgen_stmt(cur, &cur, node->then);
+        cur = new_ir(cur, IR_LABEL, cont, NULL, NULL);
+        if (node->inc) {
+            Operand *inc = irgen_expr(cur, &cur, node->inc);
+            cur = new_ir(cur, IR_FREE, inc, NULL, NULL);
+        }
+        cur = new_ir(cur, IR_JMP, begin, NULL, NULL);
+        cur = new_ir(cur, IR_LABEL, end, NULL, NULL);
+        *code = cur;
+        return;
+    }
     case ND_IF: {
         Operand *els = new_label("else");
         Operand *end = new_label("end");

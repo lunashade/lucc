@@ -51,4 +51,7 @@ assert 42 'if (1) return 42; return 0;'
 assert 0 'if (0) return 42; return 0;'
 assert 42 'if (1) return 42; else return 0;'
 assert 0 'if (0) return 42; else return 0;'
+
+assert 5 'a=0; for (;a<5;a=a+1) 0; return a;'
+assert 5 'a=0; while (a<5) a=a+1; return a;'
 echo "ok"
