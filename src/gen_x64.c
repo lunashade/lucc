@@ -7,6 +7,7 @@ void emitfln(char *fmt, ...) {
     fprintf(stdout, "\n");
 }
 
+static Register *RBX = &(Register){"%rbx"};
 static Register *R10 = &(Register){"%r10"};
 static Register *R11 = &(Register){"%r11"};
 static Register *R12 = &(Register){"%r12"};
@@ -23,7 +24,7 @@ static void alloc(Operand *op) {
     if (op->reg)
         return;
 
-    Register *reg_x64[] = {R10, R11, R12, R13, R14, R15};
+    Register *reg_x64[] = {RBX, R10, R11, R12, R13, R14, R15};
     for (int i = 0; i < sizeof(reg_x64) / sizeof(*reg_x64); i++) {
         if (reg_x64[i]->used)
             continue;
