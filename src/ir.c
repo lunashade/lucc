@@ -125,11 +125,14 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
     switch (node->kind) {
     default:
         error_tok(node->tok, "not a statement node");
+    case ND_BLOCK:
+        for (Node *n = node->body; n; n = n->next)
+            irgen_stmt(cur, &cur, n);
+        break;
     case ND_EXPR_STMT: {
         Operand *ret = irgen_expr(cur, &cur, node->lhs);
         cur = new_ir(cur, IR_FREE, ret, NULL, NULL);
-        *code = cur;
-        return;
+        break;
     }
     case ND_FOR: {
         Operand *begin = new_label("begin");
@@ -150,8 +153,7 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
 
         cur = new_ir(cur, IR_JMP, begin, NULL, NULL);
         cur = new_ir(cur, IR_LABEL, end, NULL, NULL);
-        *code = cur;
-        return;
+        break;
     }
     case ND_IF: {
         Operand *els = new_label("else");
@@ -165,16 +167,16 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
         if (node->els)
             irgen_stmt(cur, &cur, node->els);
         cur = new_ir(cur, IR_LABEL, end, NULL, NULL);
-        *code = cur;
-        return;
+        break;
     }
     case ND_RETURN: {
         Operand *ret = irgen_expr(cur, &cur, node->lhs);
         cur = new_ir(cur, IR_RETURN, ret, NULL, NULL);
-        *code = cur;
-        return;
+        break;
     }
     }
+    *code = cur;
+    return;
 }
 
 void irgen(Function *func) {

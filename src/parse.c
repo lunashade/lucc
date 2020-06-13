@@ -1,5 +1,6 @@
 #include "lucc.h"
 
+static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
 static Node *expr(Token **rest, Token *tok);
@@ -71,6 +72,10 @@ Var *new_lvar(char *name) {
     return var;
 }
 
+//
+// Parser
+//
+
 // program = stmt*
 Function *parse(Token *tok) {
     Function *func = calloc(1, sizeof(Function));
@@ -87,12 +92,29 @@ Function *parse(Token *tok) {
     return func;
 }
 
+// compound-stmt = stmt* "}"
+static Node *compound_stmt(Token **rest, Token *tok) {
+    Node *node = new_node(ND_BLOCK, tok);
+    Node head = {};
+    Node *cur = &head;
+    while (!equal(tok, "}")) {
+        cur = cur->next = stmt(&tok, tok);
+    }
+    node->body = head.next;
+    *rest = skip(tok, "}");
+    return node;
+}
+
 // stmt = "return" expr ";"
 //      | expr ";"
 //      | "if" "(" expr ")" stmt ("else" stmt)?
 //      | "while" "(" expr ")" stmt
 //      | "for" "(" expr? ";" expr? ";" expr? ")" stmt
+//      | "{" compound-stmt
 static Node *stmt(Token **rest, Token *tok) {
+    if (equal(tok, "{")) {
+        return compound_stmt(rest, tok->next);
+    }
     if (equal(tok, "if")) {
         Node *node = new_node(ND_IF, tok);
         tok = skip(tok->next, "(");

@@ -43,6 +43,7 @@ typedef enum {
     ND_RETURN,    // return statement
     ND_IF,        // if statement
     ND_FOR,       // for statement
+    ND_BLOCK,     // block
 } NodeKind;
 
 typedef enum {
@@ -69,8 +70,8 @@ typedef enum {
 
 typedef enum {
     OP_REGISTER, // register
-    OP_SYMBOL, // symbol
-    OP_LABEL, // label
+    OP_SYMBOL,   // symbol
+    OP_LABEL,    // label
 } OperandKind;
 
 typedef struct Token Token;
@@ -121,6 +122,7 @@ struct Node {
     Node *lhs, *rhs;
     Node *next;
     Node *init, *cond, *inc, *then, *els;
+    Node *body;
     long val; // ND_NUM
     Var *var;
 };
