@@ -6,7 +6,8 @@ TargetArch opt_target;
 static char *input;
 
 static noreturn void usage(int code) {
-    fprintf(stderr, "Usage: lucc [--dump-ir1,--dump-ir2] <input>");
+    fprintf(stderr, "Usage: lucc [--dump-ir1,--dump-ir2,--dump-ir]"
+                    "[-march=x86_64,riscv,llvm] <input>");
     exit(code);
 }
 static void parse_args(int argc, char **argv) {
