@@ -1,6 +1,7 @@
 #include "lucc.h"
 
 static int reg_id;
+static int sym_id;
 
 Operand *new_operand(OperandKind kind) {
     Operand *op = calloc(1, sizeof(Operand));
@@ -14,6 +15,7 @@ Operand *new_register(void) {
 }
 Operand *new_symbol(Var *var) {
     Operand *op = new_operand(OP_SYM);
+    op->id = sym_id++;
     op->var = var;
     return op;
 }
@@ -21,10 +23,8 @@ Operand *new_symbol(Var *var) {
 IR *new_ir(IR *cur, IRKind kind, Operand *lhs, Operand *rhs, Operand *dst) {
     IR *ir = calloc(1, sizeof(IR));
     ir->kind = kind;
-    if (lhs)
-        ir->lhs = lhs;
-    if (rhs)
-        ir->rhs = rhs;
+    ir->lhs = lhs;
+    ir->rhs = rhs;
     ir->dst = dst;
     cur->next = ir;
     return ir;

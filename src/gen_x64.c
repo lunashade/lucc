@@ -24,7 +24,7 @@ static void alloc(Operand *op) {
         return;
 
     Register *reg_x64[] = {R10, R11, R12, R13, R14, R15};
-    for (int i = 1; i < sizeof(reg_x64) / sizeof(*reg_x64); i++) {
+    for (int i = 0; i < sizeof(reg_x64) / sizeof(*reg_x64); i++) {
         if (reg_x64[i]->used)
             continue;
         reg_x64[i]->used = true;

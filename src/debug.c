@@ -10,9 +10,9 @@ void print_operand(Operand *op) {
         fprintf(stderr, "%s", get_regx64(op));
     fprintf(stderr, "(%d)", op->id);
 }
-void print_ir(IR *ir) {
-    fprintf(stderr, "kind: ");
-    switch (ir->kind) {
+
+void print_irkind(IRKind kind) {
+    switch (kind) {
         ENUMDUMP(IR_NOP)
         ENUMDUMP(IR_IMM)
         ENUMDUMP(IR_MOV)
@@ -30,6 +30,10 @@ void print_ir(IR *ir) {
         ENUMDUMP(IR_LT)
         ENUMDUMP(IR_LE)
     }
+}
+void print_ir(IR *ir) {
+    fprintf(stderr, "kind: ");
+    print_irkind(ir->kind);
     fprintf(stderr, "(%d)", ir->kind);
     if (ir->lhs) {
         fprintf(stderr, ", lhs: ");
