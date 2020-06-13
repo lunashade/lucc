@@ -1,11 +1,15 @@
 #include "lucc.h"
 
-static int opp;
+static int reg_id;
 
 Operand *new_operand(OperandKind kind) {
     Operand *op = calloc(1, sizeof(Operand));
     op->kind = kind;
-    op->id = opp++;
+    return op;
+}
+Operand *new_register(void) {
+    Operand *op = new_operand(OP_REG);
+    op->id = reg_id++;
     return op;
 }
 Operand *new_symbol(Var *var) {
@@ -31,7 +35,7 @@ Operand *irgen_addr(IR *cur, IR **code, Node *node) {
         error_tok(node->tok, "not an lvalue");
 
     Operand *sym = new_symbol(node->var);
-    Operand *dst = new_operand(OP_VAL);
+    Operand *dst = new_register();
     cur = new_ir(cur, IR_ADDR, sym, NULL, dst);
     *code = cur;
     return cur->dst;
@@ -40,7 +44,7 @@ Operand *irgen_addr(IR *cur, IR **code, Node *node) {
 Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     switch (node->kind) {
     case ND_NUM: {
-        cur = new_ir(cur, IR_IMM, NULL, NULL, new_operand(OP_VAL));
+        cur = new_ir(cur, IR_IMM, NULL, NULL, new_register());
         cur->val = node->val;
         *code = cur;
         return cur->dst;
@@ -48,7 +52,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     case ND_ASSIGN: {
         Operand *lhs = irgen_addr(cur, &cur, node->lhs);
         Operand *rhs = irgen_expr(cur, &cur, node->rhs);
-        Operand *dst = new_operand(OP_VAL);
+        Operand *dst = new_register();
         cur = new_ir(cur, IR_STORE, lhs, rhs, dst);
         cur = new_ir(cur, IR_FREE, lhs, NULL, NULL);
         *code = cur;
@@ -56,7 +60,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     }
     case ND_VAR: {
         Operand *lhs = irgen_addr(cur, &cur, node);
-        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_operand(OP_VAL));
+        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_register());
         *code = cur;
         return cur->dst;
     }
@@ -64,7 +68,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
 
     Operand *lhs = irgen_expr(cur, &cur, node->lhs);
     Operand *rhs = irgen_expr(cur, &cur, node->rhs);
-    Operand *dst = new_operand(OP_VAL);
+    Operand *dst = new_register();
     switch (node->kind) {
     case ND_ADD:
         cur = new_ir(cur, IR_ADD, lhs, rhs, dst);

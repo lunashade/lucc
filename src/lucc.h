@@ -63,7 +63,7 @@ typedef enum {
 } IRKind;
 
 typedef enum {
-    OP_VAL,
+    OP_REG,
     OP_SYM,
 } OperandKind;
 
