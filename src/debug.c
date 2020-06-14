@@ -30,6 +30,7 @@ void print_nodekind(NodeKind kind) {
         ENUMDUMP(ND_RETURN)
         ENUMDUMP(ND_IF)
         ENUMDUMP(ND_FOR)
+        ENUMDUMP(ND_BLOCK)
     }
     fprintf(stderr, "(%d)", kind);
 }
@@ -87,12 +88,24 @@ void print_nodes(Node *node) {
             print_nodes(node->inc);
         print_nodes(node->then);
         break;
+    case ND_BLOCK:
+        fprintf(stderr, "\n");
+        for (Node *n = node->body; n; n=n->next) {
+            print_nodes(n);
+        }
+    }
+}
+void print_opkind(OperandKind kind) {
+    fprintf(stderr, "kind: ");
+    switch (kind) {
+        ENUMDUMP(OP_LABEL)
+        ENUMDUMP(OP_REGISTER)
+        ENUMDUMP(OP_SYMBOL)
     }
 }
 
 void print_operand(Operand *op) {
-    if (op->reg)
-        fprintf(stderr, "%s", get_operand(op));
+    print_opkind(op->kind);
     fprintf(stderr, "(%d)", op->id);
 }
 

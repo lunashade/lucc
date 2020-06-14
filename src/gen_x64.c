@@ -1,12 +1,5 @@
 #include "lucc.h"
 
-void emitfln(char *fmt, ...) {
-    va_list ap;
-    va_start(ap, fmt);
-    vfprintf(stdout, fmt, ap);
-    fprintf(stdout, "\n");
-}
-
 static Register *RBX = &(Register){"%rbx"};
 static Register *R10 = &(Register){"%r10"};
 static Register *R11 = &(Register){"%r11"};
@@ -15,7 +8,7 @@ static Register *R13 = &(Register){"%r13"};
 static Register *R14 = &(Register){"%r14"};
 static Register *R15 = &(Register){"%r15"};
 
-char *get_operand(Operand *op) {
+static char *get_operand(Operand *op) {
     switch (op->kind) {
     case OP_REGISTER:
         assert(op->reg);
@@ -146,10 +139,12 @@ void codegen_x64(Function *func) {
                     get_operand(ir->dst));
             break;
         case IR_LOAD:
-            emitfln("\tmov (%s), %s", get_operand(ir->lhs), get_operand(ir->dst));
+            emitfln("\tmov (%s), %s", get_operand(ir->lhs),
+                    get_operand(ir->dst));
             break;
         case IR_STORE:
-            emitfln("\tmov %s, (%s)", get_operand(ir->rhs), get_operand(ir->lhs));
+            emitfln("\tmov %s, (%s)", get_operand(ir->rhs),
+                    get_operand(ir->lhs));
             break;
         case IR_MOV:
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
@@ -161,7 +156,8 @@ void codegen_x64(Function *func) {
             emitfln("\tsub %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_MUL:
-            emitfln("\timul %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
+            emitfln("\timul %s, %s", get_operand(ir->rhs),
+                    get_operand(ir->dst));
             break;
         case IR_DIV:
             emitfln("\tmov %s, %%rax", get_operand(ir->lhs));

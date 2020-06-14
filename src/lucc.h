@@ -89,6 +89,7 @@ extern bool opt_dump_ir1;
 extern bool opt_dump_ir2;
 extern TargetArch opt_target;
 int align_to(int n, int align);
+void emitfln(char *fmt, ...);
 
 //
 // tokenize.c
@@ -164,7 +165,6 @@ void irgen(Function *);
 // gen_x64.c
 //
 void codegen_x64(Function *);
-char *get_operand(Operand *);
 
 //
 // debug.c
