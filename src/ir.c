@@ -41,11 +41,7 @@ Operand *irgen_addr(IR *cur, IR **code, Node *node) {
     if (node->kind != ND_VAR)
         error_tok(node->tok, "not an lvalue");
 
-    Operand *sym = new_symbol(node->var);
-    Operand *dst = new_register();
-    cur = new_ir(cur, IR_ADDR, sym, NULL, dst);
-    *code = cur;
-    return cur->dst;
+    return new_symbol(node->var);
 }
 
 Operand *irgen_expr(IR *cur, IR **code, Node *node) {
@@ -61,7 +57,6 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         Operand *rhs = irgen_expr(cur, &cur, node->rhs);
         Operand *dst = new_register();
         cur = new_ir(cur, IR_STORE, lhs, rhs, dst);
-        cur = new_ir(cur, IR_FREE, lhs, NULL, NULL);
         *code = cur;
         return dst;
     }

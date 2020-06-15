@@ -115,7 +115,6 @@ void print_irkind(IRKind kind) {
         ENUMDUMP(IR_NOP)
         ENUMDUMP(IR_IMM)
         ENUMDUMP(IR_MOV)
-        ENUMDUMP(IR_ADDR)
         ENUMDUMP(IR_LOAD)
         ENUMDUMP(IR_STORE)
         ENUMDUMP(IR_RETURN)

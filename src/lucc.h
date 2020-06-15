@@ -50,7 +50,6 @@ typedef enum {
     IR_NOP,
     IR_IMM,
     IR_MOV,
-    IR_ADDR,
     IR_LOAD,
     IR_STORE,
     IR_RETURN,

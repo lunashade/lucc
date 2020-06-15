@@ -64,7 +64,6 @@ static void alloc_regs_x64(IR *ir) {
             alloc(ir->rhs);
             break;
         case IR_IMM:
-        case IR_ADDR:
             alloc(ir->dst);
             break;
         case IR_STORE:
@@ -134,17 +133,13 @@ void codegen_x64(Function *func) {
         case IR_IMM:
             emitfln("\tmov $%lu, %s", ir->val, get_operand(ir->dst));
             break;
-        case IR_ADDR:
-            emitfln("\tlea %d(%%rbp), %s", -ir->lhs->var->offset,
-                    get_operand(ir->dst));
-            break;
         case IR_LOAD:
-            emitfln("\tmov (%s), %s", get_operand(ir->lhs),
+            emitfln("\tmov %d(%%rbp), %s", -ir->lhs->var->offset,
                     get_operand(ir->dst));
             break;
         case IR_STORE:
-            emitfln("\tmov %s, (%s)", get_operand(ir->rhs),
-                    get_operand(ir->lhs));
+            emitfln("\tmov %s, %d(%%rbp)", get_operand(ir->rhs),
+                    -ir->lhs->var->offset);
             break;
         case IR_MOV:
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
