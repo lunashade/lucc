@@ -10,6 +10,8 @@ $(OBJS): src/lucc.h
 test: bin/lucc
 	./test.sh $<
 
+test-riscv: bin/lucc
+	./test.sh --riscv $<
 clean:
 	git clean -fdX
 

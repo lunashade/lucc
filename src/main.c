@@ -82,6 +82,9 @@ int main(int argc, char **argv) {
     case TARGET_X86_64:
         codegen_x64(func);
         break;
+    case TARGET_RISCV:
+        codegen_riscv(func);
+        break;
     default:
         error("unsupported target");
     }

@@ -1,9 +1,15 @@
 #!/bin/bash
+opt_riscv=false
+if [[ "$1" == "--riscv"  ]]; then
+    opt_riscv=true
+    shift
+fi
 BIN=./$@
 
-function assert {
+function assert-x64 {
     want=$1
     input=$2
+
     $BIN "$input" > tmp.s || exit 1
     cc -o tmp tmp.s
     ./tmp
@@ -14,6 +20,32 @@ function assert {
         exit 1
     else
         echo "$input => $got"
+    fi
+}
+
+function assert-riscv {
+    want=$1
+    input=$2
+    $BIN -march=riscv "$input" > tmp.s || exit 1
+    riscv64-linux-gnu-gcc-8 -static -o tmp tmp.s
+    qemu-riscv64 ./tmp
+    got=$?
+
+    if [[ "$got" != "$want" ]]; then
+        echo "$input => want $want, got $got"
+        exit 1
+    else
+        echo "$input => $got"
+    fi
+}
+
+function assert {
+    want=$1
+    input=$2
+    if $opt_riscv; then
+        assert-riscv "$want" "$input"
+    else
+        assert-x64 "$want" "$input"
     fi
 }
 

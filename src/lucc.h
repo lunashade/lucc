@@ -164,6 +164,10 @@ void irgen(Function *);
 // gen_x64.c
 //
 void codegen_x64(Function *);
+//
+// gen_riscv.c
+//
+void codegen_riscv(Function *);
 
 //
 // debug.c
