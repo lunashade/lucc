@@ -5,14 +5,17 @@ static char *get_operand(Operand *op) {
     case OP_REGISTER:
         assert(op->reg);
         return op->reg->name;
-    case OP_LABEL: {
-        char *buf = malloc(20 + strlen(op->prefix));
-        sprintf(buf, ".L%s%d", op->prefix, op->id);
-        return buf;
-    }
     case OP_SYMBOL:
         return op->var->name;
+    default:
+        error("unknown operand");
     }
+}
+static char *get_label(Operand *op) {
+    assert(op->kind == OP_LABEL);
+    char *buf = malloc(20 + strlen(op->prefix));
+    sprintf(buf, ".L%s%d", op->prefix, op->id);
+    return buf;
 }
 static Register *T0 = &(Register){"t0"};
 static Register *T1 = &(Register){"t1"};
@@ -61,6 +64,7 @@ static void alloc_regs(IR *ir) {
             alloc(ir->rhs);
             break;
         case IR_IMM:
+        case IR_CALL:
             alloc(ir->dst);
             break;
         case IR_STORE:
@@ -100,7 +104,8 @@ void codegen_riscv(Function *func) {
     emitfln(".globl main");
     emitfln("main:");
     emitfln("\taddi sp, sp, -%d", func->stacksize);
-    emitfln("\tsd s0, %d(sp)", func->stacksize - 8);
+    emitfln("\tsd ra, %d(sp)", func->stacksize - 8);
+    emitfln("\tsd s0, %d(sp)", func->stacksize - 16);
     emitfln("\taddi s0, sp, %d", func->stacksize);
 
     for (IR *ir = func->irs; ir; ir = ir->next) {
@@ -108,59 +113,78 @@ void codegen_riscv(Function *func) {
         case IR_NOP:
             break;
         case IR_JMP:
-            assert(ir->lhs->kind == OP_LABEL);
-            emitfln("\tj %s", get_operand(ir->lhs));
+            emitfln("\tj %s", get_label(ir->lhs));
             break;
         case IR_JMPIFZERO:
-            assert(ir->lhs->kind == OP_LABEL);
-            emitfln("\tbeqz %s, %s", get_operand(ir->rhs), get_operand(ir->lhs));
+            emitfln("\tbeqz %s, %s", get_operand(ir->rhs),
+                    get_label(ir->lhs));
             break;
         case IR_LABEL:
-            assert(ir->lhs->kind == OP_LABEL);
-            emitfln("%s:", get_operand(ir->lhs));
+            emitfln("%s:", get_label(ir->lhs));
             break;
         case IR_IMM:
             emitfln("\tli %s, %lu", get_operand(ir->dst), ir->val);
             break;
         case IR_LOAD:
-            emitfln("\tld %s, %d(s0)", get_operand(ir->dst), -ir->lhs->var->offset);
+            emitfln("\tld %s, %d(s0)", get_operand(ir->dst),
+                    -ir->lhs->var->offset);
             break;
         case IR_STORE:
-            emitfln("\tsd %s, %d(s0)", get_operand(ir->dst), -ir->lhs->var->offset);
+            emitfln("\tsd %s, %d(s0)", get_operand(ir->dst),
+                    -ir->lhs->var->offset);
             break;
         case IR_MOV:
             emitfln("\tmv %s, %s", get_operand(ir->dst), get_operand(ir->rhs));
             break;
+        case IR_CALL:
+            emitfln("\tcall %s", ir->funcname);
+            emitfln("\tmv %s, a0", get_operand(ir->dst));
+            break;
         case IR_ADD:
-            emitfln("\tadd %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tadd %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
             break;
         case IR_SUB:
-            emitfln("\tsub %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tsub %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
             break;
         case IR_MUL:
-            emitfln("\tmul %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tmul %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
             break;
         case IR_DIV:
-            emitfln("\tdiv %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tdiv %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
             break;
         case IR_EQ:
-            emitfln("\tsub %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
-            emitfln("\tseqz %s, %s", get_operand(ir->dst), get_operand(ir->dst));
-            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst), get_operand(ir->dst));
+            emitfln("\tsub %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tseqz %s, %s", get_operand(ir->dst),
+                    get_operand(ir->dst));
+            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst),
+                    get_operand(ir->dst));
             break;
         case IR_NE:
-            emitfln("\tsub %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
-            emitfln("\tsnez %s, %s", get_operand(ir->dst), get_operand(ir->dst));
-            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst), get_operand(ir->dst));
+            emitfln("\tsub %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tsnez %s, %s", get_operand(ir->dst),
+                    get_operand(ir->dst));
+            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst),
+                    get_operand(ir->dst));
             break;
         case IR_LT:
-            emitfln("\tslt %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
-            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst), get_operand(ir->dst));
+            emitfln("\tslt %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst),
+                    get_operand(ir->dst));
             break;
         case IR_LE:
-            emitfln("\tsgt %s, %s, %s", get_operand(ir->dst), get_operand(ir->lhs), get_operand(ir->rhs));
-            emitfln("\txori %s, %s, 1", get_operand(ir->dst), get_operand(ir->dst));
-            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst), get_operand(ir->dst));
+            emitfln("\tsgt %s, %s, %s", get_operand(ir->dst),
+                    get_operand(ir->lhs), get_operand(ir->rhs));
+            emitfln("\txori %s, %s, 1", get_operand(ir->dst),
+                    get_operand(ir->dst));
+            emitfln("\tandi %s, %s, 0xff", get_operand(ir->dst),
+                    get_operand(ir->dst));
             break;
         case IR_RETURN:
             emitfln("\tmv a0, %s", get_operand(ir->lhs));
@@ -171,7 +195,8 @@ void codegen_riscv(Function *func) {
         }
     }
     emitfln(".L.return:");
-    emitfln("\tld s0, %d(sp)", func->stacksize - 8);
+    emitfln("\tld ra, %d(sp)", func->stacksize - 8);
+    emitfln("\tld s0, %d(sp)", func->stacksize - 16);
     emitfln("\taddi sp, sp, %d", func->stacksize);
     emitfln("\tret");
 }

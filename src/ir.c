@@ -40,7 +40,6 @@ IR *new_ir(IR *cur, IRKind kind, Operand *lhs, Operand *rhs, Operand *dst) {
 Operand *irgen_addr(IR *cur, IR **code, Node *node) {
     if (node->kind != ND_VAR)
         error_tok(node->tok, "not an lvalue");
-
     return new_symbol(node->var);
 }
 
@@ -49,6 +48,12 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     case ND_NUM: {
         cur = new_ir(cur, IR_IMM, NULL, NULL, new_register());
         cur->val = node->val;
+        *code = cur;
+        return cur->dst;
+    }
+    case ND_FUNCALL: {
+        cur = new_ir(cur, IR_CALL, NULL, NULL, new_register());
+        cur->funcname = node->funcname;
         *code = cur;
         return cur->dst;
     }

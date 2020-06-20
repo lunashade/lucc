@@ -11,7 +11,9 @@ function assert-x64 {
     input=$2
 
     $BIN "$input" > tmp.s || exit 1
-    cc -o tmp tmp.s
+    CC=cc
+    $CC -c -o tests/extern.o tests/extern.c
+    $CC -static -o tmp tmp.s tests/extern.o
     ./tmp
     got=$?
 
@@ -27,7 +29,9 @@ function assert-riscv {
     want=$1
     input=$2
     $BIN -march=riscv "$input" > tmp.s || exit 1
-    riscv64-linux-gnu-gcc-8 -static -o tmp tmp.s
+    CC=riscv64-linux-gnu-gcc-8
+    $CC -c -o tests/extern-riscv.o tests/extern.c
+    $CC -static -o tmp tmp.s tests/extern-riscv.o
     qemu-riscv64 ./tmp
     got=$?
 
@@ -88,4 +92,7 @@ assert 5 'a=0; for (;a<5;a=a+1) 0; return a;'
 assert 5 'a=0; while (a<5) a=a+1; return a;'
 
 assert 15 'a=0; b=0; while(a<5) {a=a+1; b=b+a;} return b;'
+
+assert 3 'return ret3();'
+assert 5 'return ret5();'
 echo "ok"

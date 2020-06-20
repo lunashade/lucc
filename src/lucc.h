@@ -30,6 +30,7 @@ typedef enum {
 typedef enum {
     ND_NUM,       // num
     ND_VAR,       // variable
+    ND_FUNCALL,   // funcall
     ND_ADD,       // +
     ND_SUB,       // -
     ND_MUL,       // *
@@ -57,6 +58,7 @@ typedef enum {
     IR_JMPIFZERO,
     IR_LABEL,
     IR_FREE,
+    IR_CALL,
     IR_ADD,
     IR_SUB,
     IR_MUL,
@@ -124,12 +126,14 @@ struct Node {
     Node *init, *cond, *inc, *then, *els;
     Node *body;
     long val; // ND_NUM
+    char *funcname;
     Var *var;
 };
 
 struct Function {
     Node *nodes;
     IR *irs;
+    char *name;
     Var *locals;
     int stacksize;
 };
@@ -156,6 +160,7 @@ struct IR {
     IRKind kind;
     Operand *lhs, *rhs, *dst;
     long val;
+    char *funcname;
 };
 
 void irgen(Function *);

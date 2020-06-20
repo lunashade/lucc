@@ -8,10 +8,10 @@ bin/lucc: $(OBJS)
 $(OBJS): src/lucc.h
 
 test: bin/lucc
-	./test.sh $<
+	tests/test.sh $<
 
 test-riscv: bin/lucc
-	./test.sh --riscv $<
+	tests/test.sh --riscv $<
 clean:
 	git clean -fdX
 

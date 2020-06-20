@@ -11,6 +11,7 @@ static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
+static Node *funcall(Token **rest, Token *tok);
 
 bool equal(Token *tok, char *p) {
     return (strlen(p) == tok->len) && (strncmp(tok->loc, p, tok->len) == 0);
@@ -284,7 +285,7 @@ static Node *unary(Token **rest, Token *tok) {
     return primary(rest, tok);
 }
 
-// primary = num | ident | "(" expr ")"
+// primary = num | ident | funcall | "(" expr ")"
 static Node *primary(Token **rest, Token *tok) {
     if (equal(tok, "(")) {
         Node *node = expr(&tok, tok->next);
@@ -292,6 +293,9 @@ static Node *primary(Token **rest, Token *tok) {
         return node;
     }
     if (tok->kind == TK_IDENT) {
+        if (equal(tok->next, "(")) {
+            return funcall(rest, tok);
+        }
         Node *node = new_node(ND_VAR, tok);
         Var *var = find_var(tok);
         if (var) {
@@ -304,5 +308,14 @@ static Node *primary(Token **rest, Token *tok) {
     }
     Node *node = new_number(get_number(tok), tok);
     *rest = tok->next;
+    return node;
+}
+
+// funcall = ident "(" ")"
+static Node *funcall(Token **rest, Token *tok) {
+    Node *node = new_node(ND_FUNCALL, tok);
+    node->funcname = get_ident(tok);
+    tok = skip(tok->next, "(");
+    *rest = skip(tok, ")");
     return node;
 }

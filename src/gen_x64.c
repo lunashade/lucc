@@ -53,7 +53,7 @@ static void calc_stacksize(Function *func) {
     func->stacksize = align_to(offset, 16);
 }
 
-static void alloc_regs_x64(IR *ir) {
+static void alloc_regs(IR *ir) {
     for (; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
@@ -64,6 +64,7 @@ static void alloc_regs_x64(IR *ir) {
             alloc(ir->rhs);
             break;
         case IR_IMM:
+        case IR_CALL:
             alloc(ir->dst);
             break;
         case IR_STORE:
@@ -98,7 +99,7 @@ static void alloc_regs_x64(IR *ir) {
 
 void codegen_x64(Function *func) {
     calc_stacksize(func);
-    alloc_regs_x64(func->irs);
+    alloc_regs(func->irs);
 
     if (opt_dump_ir2) {
         fprintf(stderr, "dump ir 2\n");
@@ -143,6 +144,10 @@ void codegen_x64(Function *func) {
             break;
         case IR_MOV:
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
+            break;
+        case IR_CALL:
+            emitfln("\tcall %s", ir->funcname);
+            emitfln("\tmov %%rax, %s", get_operand(ir->dst));
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
