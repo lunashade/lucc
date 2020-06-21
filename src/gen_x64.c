@@ -112,24 +112,24 @@ static void alloc_regs(IR *ir) {
     }
 }
 
-static void codegen_fn(Function *func) {
-    calc_stacksize(func);
-    alloc_regs(func->irs);
+static void codegen_fn(Function *fn) {
+    calc_stacksize(fn);
+    alloc_regs(fn->irs);
 
     if (opt_dump_ir2) {
         fprintf(stderr, "dump ir 2\n");
-        for (IR *tmp = func->irs; tmp; tmp = tmp->next) {
+        for (IR *tmp = fn->irs; tmp; tmp = tmp->next) {
             print_ir(tmp);
         }
     }
 
-    emitfln(".globl main");
-    emitfln("main:");
+    emitfln(".globl %s", fn->name);
+    emitfln("%s:", fn->name);
     emitfln("\tpush %%rbp");
     emitfln("\tmov %%rsp, %%rbp");
-    emitfln("\tsub $%d, %%rsp", func->stacksize);
+    emitfln("\tsub $%d, %%rsp", fn->stacksize);
 
-    for (IR *ir = func->irs; ir; ir = ir->next) {
+    for (IR *ir = fn->irs; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
             break;
@@ -210,13 +210,13 @@ static void codegen_fn(Function *func) {
             break;
         case IR_RETURN:
             emitfln("\tmov %s, %%rax", get_operand(ir->lhs));
-            emitfln("\tjmp .L.return");
+            emitfln("\tjmp .L.return.%s", fn->name);
             break;
         default:
             error("unknown IR operator");
         }
     }
-    emitfln(".L.return:");
+    emitfln(".L.return.%s:", fn->name);
     emitfln("\tmov %%rbp, %%rsp");
     emitfln("\tpop %%rbp");
     emitfln("\tret");

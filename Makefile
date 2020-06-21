@@ -7,8 +7,10 @@ bin/lucc: $(OBJS)
 	$(CC) -o $@ $(OBJS) $(LDFLAGS)
 $(OBJS): src/lucc.h
 
-test: bin/lucc
-	tests/test.sh $<
+test: test-x64 test-riscv
+
+test-x64: bin/lucc
+	tests/test.sh --x64 $<
 
 test-riscv: bin/lucc
 	tests/test.sh --riscv $<

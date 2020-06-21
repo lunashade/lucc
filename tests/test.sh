@@ -4,6 +4,10 @@ if [[ "$1" == "--riscv"  ]]; then
     opt_riscv=true
     shift
 fi
+if [[ "$1" == "--x64"  ]]; then
+    opt_riscv=false
+    shift
+fi
 BIN=./$@
 
 function assert-x64 {
@@ -99,4 +103,7 @@ assert 5 'main(){return ret5();}'
 
 assert 3 'main(){return identity(3);}'
 assert 3 'main(){return add2(1, 2);}'
+
+assert 42 'main() {return ret42();} ret42() {return 42;}'
+
 echo "ok"

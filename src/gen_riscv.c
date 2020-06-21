@@ -112,18 +112,18 @@ static void alloc_regs(IR *ir) {
     }
 }
 
-static void codegen_fn(Function *func) {
-    calc_stacksize(func);
-    alloc_regs(func->irs);
+static void codegen_fn(Function *fn) {
+    calc_stacksize(fn);
+    alloc_regs(fn->irs);
 
-    emitfln(".globl main");
-    emitfln("main:");
-    emitfln("\taddi sp, sp, -%d", func->stacksize);
-    emitfln("\tsd ra, %d(sp)", func->stacksize - 8);
-    emitfln("\tsd s0, %d(sp)", func->stacksize - 16);
-    emitfln("\taddi s0, sp, %d", func->stacksize);
+    emitfln(".globl %s", fn->name);
+    emitfln("%s:", fn->name);
+    emitfln("\taddi sp, sp, -%d", fn->stacksize);
+    emitfln("\tsd ra, %d(sp)", fn->stacksize - 8);
+    emitfln("\tsd s0, %d(sp)", fn->stacksize - 16);
+    emitfln("\taddi s0, sp, %d", fn->stacksize);
 
-    for (IR *ir = func->irs; ir; ir = ir->next) {
+    for (IR *ir = fn->irs; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:
             break;
@@ -209,16 +209,16 @@ static void codegen_fn(Function *func) {
             break;
         case IR_RETURN:
             emitfln("\tmv a0, %s", get_operand(ir->lhs));
-            emitfln("\tj .L.return");
+            emitfln("\tj .L.return.%s", fn->name);
             break;
         default:
             error("unknown IR operator");
         }
     }
-    emitfln(".L.return:");
-    emitfln("\tld ra, %d(sp)", func->stacksize - 8);
-    emitfln("\tld s0, %d(sp)", func->stacksize - 16);
-    emitfln("\taddi sp, sp, %d", func->stacksize);
+    emitfln(".L.return.%s:", fn->name);
+    emitfln("\tld ra, %d(sp)", fn->stacksize - 8);
+    emitfln("\tld s0, %d(sp)", fn->stacksize - 16);
+    emitfln("\taddi sp, sp, %d", fn->stacksize);
     emitfln("\tret");
 }
 
