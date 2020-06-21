@@ -106,4 +106,11 @@ assert 3 'main(){return add2(1, 2);}'
 
 assert 42 'main() {return ret42();} ret42() {return 42;}'
 
+assert 3 'main() { x=3; return *&x;}'
+assert 3 'main() { x=3; y=&x; z=&y; return **z;}'
+assert 5 'main() { x=3; y=5; return *(&x+8);}'
+assert 5 'main() { x=3; y=&x; *y=5; return x;}'
+assert 7 'main() { x=3; y=5; *(&x+8)=7; return y;}'
+assert 7 'main() { x=3; y=5; *(&y-8)=7; return x;}'
+
 echo "ok"

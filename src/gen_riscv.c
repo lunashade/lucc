@@ -1,14 +1,29 @@
 #include "lucc.h"
 
+static char *get_operand(Operand *op);
+static char *get_address(Operand *op);
 static char *get_operand(Operand *op) {
     switch (op->kind) {
     case OP_REGISTER:
         assert(op->reg);
         return op->reg->name;
     case OP_SYMBOL:
-        return op->var->name;
+        return get_address(op);
     default:
         error("unknown operand");
+    }
+}
+static char *get_address(Operand *op) {
+    char *buf = malloc(30);
+    switch (op->kind) {
+    case OP_REGISTER:
+        sprintf(buf, "0(%s)", get_operand(op));
+        return buf;
+    case OP_SYMBOL:
+        sprintf(buf, "%d(s0)", -op->var->offset);
+        return buf;
+    default:
+        error("not an lvalue");
     }
 }
 static char *get_label(Operand *op) {
@@ -87,6 +102,7 @@ static void alloc_regs(IR *ir) {
             break;
         case IR_MOV:
         case IR_LOAD:
+        case IR_ADDR:
         case IR_ADD:
         case IR_SUB:
         case IR_MUL:
@@ -140,13 +156,17 @@ static void codegen_fn(Function *fn) {
         case IR_IMM:
             emitfln("\tli %s, %lu", get_operand(ir->dst), ir->val);
             break;
-        case IR_LOAD:
-            emitfln("\tld %s, %d(s0)", get_operand(ir->dst),
+        case IR_ADDR:
+            emitfln("\taddi %s, s0, %d", get_operand(ir->dst),
                     -ir->lhs->var->offset);
             break;
+        case IR_LOAD:
+            emitfln("\tld %s, %s", get_operand(ir->dst),
+                    get_address(ir->lhs));
+            break;
         case IR_STORE:
-            emitfln("\tsd %s, %d(s0)", get_operand(ir->dst),
-                    -ir->lhs->var->offset);
+            emitfln("\tsd %s, %s", get_operand(ir->dst),
+                    get_address(ir->lhs));
             break;
         case IR_MOV:
             emitfln("\tmv %s, %s", get_operand(ir->dst), get_operand(ir->rhs));
@@ -160,8 +180,8 @@ static void codegen_fn(Function *fn) {
             emitfln("\tmv %s, a0", get_operand(ir->dst));
             break;
         case IR_STACK_ARG:
-            emitfln("\tsd %s, %d(s0)", get_operand(ir->lhs),
-                    -ir->dst->var->offset);
+            emitfln("\tsd %s, %s", get_operand(ir->lhs),
+                    get_address(ir->dst));
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s, %s", get_operand(ir->dst),

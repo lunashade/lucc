@@ -15,6 +15,7 @@ static Register *RDX = &(Register){"%rdx"};
 static Register *R8 = &(Register){"%r8"};
 static Register *R9 = &(Register){"%r9"};
 
+static char *get_address(Operand *op);
 static char *get_operand(Operand *op) {
     switch (op->kind) {
     case OP_REGISTER:
@@ -26,7 +27,7 @@ static char *get_operand(Operand *op) {
         return buf;
     }
     case OP_SYMBOL:
-        return op->var->name;
+        return get_address(op);
     }
 }
 
@@ -35,6 +36,22 @@ static char *get_argreg(int i) {
     if (i < 0 || i >= sizeof(argregs) / sizeof(*argregs))
         error("argument register exhausted");
     return argregs[i]->name;
+}
+
+static char *get_address(Operand *op) {
+    char *buf = malloc(30);
+    switch (op->kind) {
+    case OP_REGISTER: {
+        sprintf(buf, "(%s)", get_operand(op));
+        return buf;
+    }
+    case OP_SYMBOL: {
+        sprintf(buf, "%d(%%rbp)", -op->var->offset);
+        return buf;
+    }
+    default:
+        error("not an lvalue");
+    }
 }
 
 static void alloc(Operand *op) {
@@ -87,6 +104,7 @@ static void alloc_regs(IR *ir) {
             break;
         case IR_MOV:
         case IR_LOAD:
+        case IR_ADDR:
         case IR_ADD:
         case IR_SUB:
         case IR_MUL:
@@ -153,13 +171,14 @@ static void codegen_fn(Function *fn) {
         case IR_IMM:
             emitfln("\tmov $%lu, %s", ir->val, get_operand(ir->dst));
             break;
+        case IR_ADDR:
+            emitfln("\tlea %s, %s", get_address(ir->lhs), get_operand(ir->dst));
+            break;
         case IR_LOAD:
-            emitfln("\tmov %d(%%rbp), %s", -ir->lhs->var->offset,
-                    get_operand(ir->dst));
+            emitfln("\tmov %s, %s", get_address(ir->lhs), get_operand(ir->dst));
             break;
         case IR_STORE:
-            emitfln("\tmov %s, %d(%%rbp)", get_operand(ir->rhs),
-                    -ir->lhs->var->offset);
+            emitfln("\tmov %s, %s", get_operand(ir->rhs), get_address(ir->lhs));
             break;
         case IR_MOV:
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
@@ -178,8 +197,7 @@ static void codegen_fn(Function *fn) {
             emitfln("\tmov %%rax, %s", get_operand(ir->dst));
             break;
         case IR_STACK_ARG:
-            emitfln("\tmov %s, %d(%%rbp)", get_operand(ir->lhs),
-                    -ir->dst->var->offset);
+            emitfln("\tmov %s, %s", get_operand(ir->lhs), get_address(ir->dst));
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s", get_operand(ir->rhs), get_operand(ir->dst));

@@ -35,6 +35,8 @@ typedef enum {
     ND_SUB,       // -
     ND_MUL,       // *
     ND_DIV,       // /
+    ND_ADDR,      // &
+    ND_DEREF,     // unary *
     ND_EQ,        // ==
     ND_NE,        // !=
     ND_LT,        // <
@@ -64,6 +66,7 @@ typedef enum {
     IR_SUB,
     IR_MUL,
     IR_DIV,
+    IR_ADDR,
     IR_EQ,
     IR_NE,
     IR_LT,
