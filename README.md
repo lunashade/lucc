@@ -1,10 +1,11 @@
 # lucc
+![C/C++ CI](https://github.com/lunashade/lucc/workflows/C/C++%20CI/badge.svg)
 Toy C compiler
 
 ## Plan
 
-- Multi architecture support such as RISC-V
-- use Three-Address Code IR
+- Multi architecture support such as X86-64 and RISC-V
+- Use Three-Address Code IR
 
 ## Reference
 
