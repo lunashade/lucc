@@ -25,6 +25,20 @@ static Register *T4 = &(Register){"t4"};
 static Register *T5 = &(Register){"t5"};
 static Register *T6 = &(Register){"t6"};
 
+static Register *A0 = &(Register){"a0"};
+static Register *A1 = &(Register){"a1"};
+static Register *A2 = &(Register){"a2"};
+static Register *A3 = &(Register){"a3"};
+static Register *A4 = &(Register){"a4"};
+static Register *A5 = &(Register){"a5"};
+static Register *A6 = &(Register){"a6"};
+
+static char *get_argreg(int i) {
+    Register *argregs[] = {A0, A1, A2, A3, A4, A5, A6};
+    if (i < 0 || i >= sizeof(argregs) / sizeof(*argregs))
+        error("argument register exhausted");
+    return argregs[i]->name;
+}
 static void alloc(Operand *op) {
     if (op->reg)
         return;
@@ -85,6 +99,7 @@ static void alloc_regs(IR *ir) {
             ir->dst->reg = ir->lhs->reg;
             break;
         case IR_RETURN:
+        case IR_STACK_ARG:
             kill(ir->lhs);
             break;
         case IR_FREE:
@@ -137,8 +152,14 @@ void codegen_riscv(Function *func) {
             emitfln("\tmv %s, %s", get_operand(ir->dst), get_operand(ir->rhs));
             break;
         case IR_CALL:
+            for (int i = 0; i < ir->nargs; i++) {
+                emitfln("ld %s, %d(s0)", get_argreg(i), -ir->args[i]->offset);
+            }
             emitfln("\tcall %s", ir->funcname);
             emitfln("\tmv %s, a0", get_operand(ir->dst));
+            break;
+        case IR_STACK_ARG:
+            emitfln("\tsd %s, %d(s0)", get_operand(ir->lhs), -ir->dst->var->offset);
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s, %s", get_operand(ir->dst),

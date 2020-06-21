@@ -8,6 +8,13 @@ static Register *R13 = &(Register){"%r13"};
 static Register *R14 = &(Register){"%r14"};
 static Register *R15 = &(Register){"%r15"};
 
+static Register *RDI = &(Register){"%rdi"};
+static Register *RSI = &(Register){"%rsi"};
+static Register *RCX = &(Register){"%rcx"};
+static Register *RDX = &(Register){"%rdx"};
+static Register *R8 = &(Register){"%r8"};
+static Register *R9 = &(Register){"%r9"};
+
 static char *get_operand(Operand *op) {
     switch (op->kind) {
     case OP_REGISTER:
@@ -21,6 +28,13 @@ static char *get_operand(Operand *op) {
     case OP_SYMBOL:
         return op->var->name;
     }
+}
+
+static char *get_argreg(int i) {
+    Register *argregs[] = {RDI, RSI, RCX, RDX, R8, R9};
+    if (i < 0 || i >= sizeof(argregs) / sizeof(*argregs))
+        error("argument register exhausted");
+    return argregs[i]->name;
 }
 
 static void alloc(Operand *op) {
@@ -85,6 +99,7 @@ static void alloc_regs(IR *ir) {
             ir->dst->reg = ir->lhs->reg;
             break;
         case IR_RETURN:
+        case IR_STACK_ARG:
             kill(ir->lhs);
             break;
         case IR_FREE:
@@ -146,8 +161,16 @@ void codegen_x64(Function *func) {
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_CALL:
+            for (int i = 0; i < ir->nargs; i++) {
+                emitfln("mov %d(%%rbp), %s", -ir->args[i]->offset,
+                        get_argreg(i));
+            }
             emitfln("\tcall %s", ir->funcname);
             emitfln("\tmov %%rax, %s", get_operand(ir->dst));
+            break;
+        case IR_STACK_ARG:
+            emitfln("\tmov %s, %d(%%rbp)", get_operand(ir->lhs),
+                    -ir->dst->var->offset);
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s", get_operand(ir->rhs), get_operand(ir->dst));

@@ -56,8 +56,13 @@ Node *new_number(long val, Token *tok) {
     return node;
 }
 
+Var *new_var(char *name) {
+    Var *var = calloc(1, sizeof(Var));
+    var->name = name;
+    return var;
+}
 static Var *locals;
-Var *find_var(Token *tok) {
+static Var *find_var(Token *tok) {
     for (Var *var = locals; var; var = var->next) {
         if (strlen(var->name) == tok->len &&
             !strncmp(tok->loc, var->name, tok->len))
@@ -65,10 +70,9 @@ Var *find_var(Token *tok) {
     }
     return NULL;
 }
-Var *new_lvar(char *name) {
-    Var *var = calloc(1, sizeof(Var));
+static Var *new_lvar(char *name) {
+    Var *var = new_var(name);
     var->next = locals;
-    var->name = name;
     locals = var;
     return var;
 }
@@ -311,11 +315,24 @@ static Node *primary(Token **rest, Token *tok) {
     return node;
 }
 
-// funcall = ident "(" ")"
+// funcall = ident "(" (assign ("," assign)*)? ")"
 static Node *funcall(Token **rest, Token *tok) {
     Node *node = new_node(ND_FUNCALL, tok);
     node->funcname = get_ident(tok);
     tok = skip(tok->next, "(");
+
+    Node head = {};
+    Node *cur = &head;
+    int nargs = 0;
+    while (!equal(tok, ")")) {
+        if (nargs)
+            tok = skip(tok, ",");
+        cur = cur->next = assign(&tok, tok);
+        nargs++;
+    }
+    cur->next = NULL;
+    node->args = head.next;
+    node->nargs = nargs;
     *rest = skip(tok, ")");
     return node;
 }

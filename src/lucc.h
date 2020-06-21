@@ -59,6 +59,7 @@ typedef enum {
     IR_LABEL,
     IR_FREE,
     IR_CALL,
+    IR_STACK_ARG,
     IR_ADD,
     IR_SUB,
     IR_MUL,
@@ -117,6 +118,7 @@ struct Var {
     int len;
     int offset;
 };
+Var *new_var(char *name);
 
 struct Node {
     NodeKind kind;
@@ -127,6 +129,8 @@ struct Node {
     Node *body;
     long val; // ND_NUM
     char *funcname;
+    Node *args;
+    int nargs;
     Var *var;
 };
 
@@ -161,6 +165,8 @@ struct IR {
     Operand *lhs, *rhs, *dst;
     long val;
     char *funcname;
+    Var **args;
+    int nargs;
 };
 
 void irgen(Function *);

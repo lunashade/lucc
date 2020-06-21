@@ -95,4 +95,7 @@ assert 15 'a=0; b=0; while(a<5) {a=a+1; b=b+a;} return b;'
 
 assert 3 'return ret3();'
 assert 5 'return ret5();'
+
+assert 3 'return identity(3);'
+assert 3 'return add2(1, 2);'
 echo "ok"

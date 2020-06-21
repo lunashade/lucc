@@ -3,6 +3,14 @@
 static int reg_id;
 static int sym_id;
 static int label_id;
+Function *current_fn;
+
+static Var *new_lvar(char *name) {
+    Var *var = new_var(name);
+    var->next = current_fn->locals;
+    current_fn->locals = var;
+    return var;
+}
 
 Operand *new_operand(OperandKind kind) {
     Operand *op = calloc(1, sizeof(Operand));
@@ -52,8 +60,18 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         return cur->dst;
     }
     case ND_FUNCALL: {
+        Var **args = calloc(node->nargs, sizeof(Var));
+        int gp = 0;
+        for (Node *n = node->args; n; n = n->next) {
+            Operand *arg = irgen_expr(cur, &cur, n);
+            Var *argvar = new_lvar("");
+            cur = new_ir(cur, IR_STACK_ARG, arg, NULL, new_symbol(argvar));
+            args[gp++] = argvar;
+        }
         cur = new_ir(cur, IR_CALL, NULL, NULL, new_register());
         cur->funcname = node->funcname;
+        cur->args = args;
+        cur->nargs = node->nargs;
         *code = cur;
         return cur->dst;
     }
@@ -180,6 +198,7 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
 }
 
 void irgen(Function *func) {
+    current_fn = func;
     IR head = {};
     IR *cur = &head;
     for (Node *n = func->nodes; n; n = n->next) {
