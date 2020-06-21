@@ -112,7 +112,7 @@ static void alloc_regs(IR *ir) {
     }
 }
 
-void codegen_x64(Function *func) {
+static void codegen_fn(Function *func) {
     calc_stacksize(func);
     alloc_regs(func->irs);
 
@@ -220,4 +220,9 @@ void codegen_x64(Function *func) {
     emitfln("\tmov %%rbp, %%rsp");
     emitfln("\tpop %%rbp");
     emitfln("\tret");
+}
+void codegen_x64(Program *prog) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
+        codegen_fn(fn);
+    }
 }

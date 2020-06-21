@@ -67,23 +67,25 @@ int main(int argc, char **argv) {
     parse_args(argc, argv);
 
     Token *tok = tokenize(input);
-    Function *func = parse(tok);
+    Program *prog = parse(tok);
 
-    irgen(func);
+    irgen(prog);
 
     if (opt_dump_ir1) {
         fprintf(stderr, "dump ir 1\n");
-        for (IR *tmp = func->irs; tmp; tmp = tmp->next) {
-            print_ir(tmp);
+        for (Function *fn = prog->fns; fn; fn = fn->next) {
+            for (IR *tmp = fn->irs; tmp; tmp = tmp->next) {
+                print_ir(tmp);
+            }
         }
     }
 
     switch (opt_target) {
     case TARGET_X86_64:
-        codegen_x64(func);
+        codegen_x64(prog);
         break;
     case TARGET_RISCV:
-        codegen_riscv(func);
+        codegen_riscv(prog);
         break;
     default:
         error("unsupported target");

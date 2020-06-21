@@ -112,7 +112,7 @@ static void alloc_regs(IR *ir) {
     }
 }
 
-void codegen_riscv(Function *func) {
+static void codegen_fn(Function *func) {
     calc_stacksize(func);
     alloc_regs(func->irs);
 
@@ -131,8 +131,7 @@ void codegen_riscv(Function *func) {
             emitfln("\tj %s", get_label(ir->lhs));
             break;
         case IR_JMPIFZERO:
-            emitfln("\tbeqz %s, %s", get_operand(ir->rhs),
-                    get_label(ir->lhs));
+            emitfln("\tbeqz %s, %s", get_operand(ir->rhs), get_label(ir->lhs));
             break;
         case IR_LABEL:
             emitfln("%s:", get_label(ir->lhs));
@@ -159,7 +158,8 @@ void codegen_riscv(Function *func) {
             emitfln("\tmv %s, a0", get_operand(ir->dst));
             break;
         case IR_STACK_ARG:
-            emitfln("\tsd %s, %d(s0)", get_operand(ir->lhs), -ir->dst->var->offset);
+            emitfln("\tsd %s, %d(s0)", get_operand(ir->lhs),
+                    -ir->dst->var->offset);
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s, %s", get_operand(ir->dst),
@@ -220,4 +220,10 @@ void codegen_riscv(Function *func) {
     emitfln("\tld s0, %d(sp)", func->stacksize - 16);
     emitfln("\taddi sp, sp, %d", func->stacksize);
     emitfln("\tret");
+}
+
+void codegen_riscv(Program *prog) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
+        codegen_fn(fn);
+    }
 }

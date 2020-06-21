@@ -1,5 +1,6 @@
 #include "lucc.h"
 
+static Function *funcdef(Token **rest, Token *tok);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -82,19 +83,31 @@ static Var *new_lvar(char *name) {
 //
 
 // program = stmt*
-Function *parse(Token *tok) {
-    Function *func = calloc(1, sizeof(Function));
-    locals = NULL;
-    Node head = {};
-    Node *cur = &head;
+Program *parse(Token *tok) {
+    Program *prog = calloc(1, sizeof(Program));
+    Function head = {};
+    Function *cur = &head;
     for (; tok->kind != TK_EOF;) {
-        cur = cur->next = stmt(&tok, tok);
+        cur = cur->next = funcdef(&tok, tok);
     }
-    func->nodes = head.next;
-    func->locals = locals;
     if (tok->kind != TK_EOF)
         error_tok(tok, "extra tokens");
-    return func;
+    prog->fns = head.next;
+    return prog;
+}
+
+// funcdef = ident "(" ")" "{" compound-stmt
+static Function *funcdef(Token **rest, Token *tok) {
+    Function *fn = calloc(1, sizeof(Function));
+    locals = NULL;
+    fn->name = get_ident(tok);
+    tok = skip(tok->next, "(");
+    tok = skip(tok, ")");
+    tok = skip(tok, "{");
+    fn->nodes = compound_stmt(&tok, tok);
+    fn->locals = locals;
+    *rest = tok;
+    return fn;
 }
 
 // compound-stmt = stmt* "}"

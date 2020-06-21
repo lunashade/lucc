@@ -80,6 +80,7 @@ typedef struct Token Token;
 typedef struct Var Var;
 typedef struct Node Node;
 typedef struct Function Function;
+typedef struct Program Program;
 typedef struct Operand Operand;
 typedef struct Register Register;
 typedef struct IR IR;
@@ -135,6 +136,7 @@ struct Node {
 };
 
 struct Function {
+    Function *next;
     Node *nodes;
     IR *irs;
     char *name;
@@ -142,8 +144,13 @@ struct Function {
     int stacksize;
 };
 
+struct Program {
+    Function *fns;
+    Var *globals;
+};
+
 bool equal(Token *tok, char *p);
-Function *parse(Token *);
+Program *parse(Token *);
 
 //
 // ir.c
@@ -169,16 +176,16 @@ struct IR {
     int nargs;
 };
 
-void irgen(Function *);
+void irgen(Program *);
 
 //
 // gen_x64.c
 //
-void codegen_x64(Function *);
+void codegen_x64(Program *);
 //
 // gen_riscv.c
 //
-void codegen_riscv(Function *);
+void codegen_riscv(Program *);
 
 //
 // debug.c

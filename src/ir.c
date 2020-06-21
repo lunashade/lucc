@@ -197,12 +197,14 @@ void irgen_stmt(IR *cur, IR **code, Node *node) {
     return;
 }
 
-void irgen(Function *func) {
-    current_fn = func;
-    IR head = {};
-    IR *cur = &head;
-    for (Node *n = func->nodes; n; n = n->next) {
-        irgen_stmt(cur, &cur, n);
+void irgen(Program *prog) {
+    for (Function *fn = prog->fns; fn; fn = fn->next) {
+        current_fn = fn;
+        IR head = {};
+        IR *cur = &head;
+        for (Node *n = fn->nodes; n; n = n->next) {
+            irgen_stmt(cur, &cur, n);
+        }
+        fn->irs = head.next;
     }
-    func->irs = head.next;
 }
