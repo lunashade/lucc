@@ -59,7 +59,7 @@ static void kill(Operand *op) {
 }
 
 static void calc_stacksize(Function *func) {
-    int offset = 0;
+    int offset = 32;
     for (Var *var = func->locals; var; var = var->next) {
         offset += 8;
         var->offset = offset;
@@ -128,6 +128,10 @@ static void codegen_fn(Function *fn) {
     emitfln("\tpush %%rbp");
     emitfln("\tmov %%rsp, %%rbp");
     emitfln("\tsub $%d, %%rsp", fn->stacksize);
+    emitfln("\tmov %%r12, -8(%%rbp)");
+    emitfln("\tmov %%r13, -16(%%rbp)");
+    emitfln("\tmov %%r14, -24(%%rbp)");
+    emitfln("\tmov %%r15, -32(%%rbp)");
 
     for (IR *ir = fn->irs; ir; ir = ir->next) {
         switch (ir->kind) {
@@ -161,11 +165,16 @@ static void codegen_fn(Function *fn) {
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_CALL:
+            emitfln("push %%r10");
+            emitfln("push %%r11");
             for (int i = 0; i < ir->nargs; i++) {
-                emitfln("mov %d(%%rbp), %s", -ir->args[i]->offset,
+                emitfln("\tmov %d(%%rbp), %s", -ir->args[i]->offset,
                         get_argreg(i));
             }
+            emitfln("\tmov $0, %%rax");
             emitfln("\tcall %s", ir->funcname);
+            emitfln("pop %%r11");
+            emitfln("pop %%r10");
             emitfln("\tmov %%rax, %s", get_operand(ir->dst));
             break;
         case IR_STACK_ARG:
@@ -217,6 +226,10 @@ static void codegen_fn(Function *fn) {
         }
     }
     emitfln(".L.return.%s:", fn->name);
+    emitfln("\tmov -8(%%rbp), %%r12");
+    emitfln("\tmov -16(%%rbp), %%r13");
+    emitfln("\tmov -24(%%rbp), %%r14");
+    emitfln("\tmov -32(%%rbp), %%r15");
     emitfln("\tmov %%rbp, %%rsp");
     emitfln("\tpop %%rbp");
     emitfln("\tret");

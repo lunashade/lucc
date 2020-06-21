@@ -122,6 +122,7 @@ static void codegen_fn(Function *fn) {
     emitfln("\tsd ra, %d(sp)", fn->stacksize - 8);
     emitfln("\tsd s0, %d(sp)", fn->stacksize - 16);
     emitfln("\taddi s0, sp, %d", fn->stacksize);
+    // TODO: save callee-saved registers
 
     for (IR *ir = fn->irs; ir; ir = ir->next) {
         switch (ir->kind) {
@@ -151,6 +152,7 @@ static void codegen_fn(Function *fn) {
             emitfln("\tmv %s, %s", get_operand(ir->dst), get_operand(ir->rhs));
             break;
         case IR_CALL:
+            // TODO: save caller-saved registers: t0-t6
             for (int i = 0; i < ir->nargs; i++) {
                 emitfln("ld %s, %d(s0)", get_argreg(i), -ir->args[i]->offset);
             }
