@@ -6,4 +6,4 @@ RUN apt update && \
 RUN wget https://download.qemu.org/qemu-5.0.0.tar.xz && \
     tar xvf qemu-5.0.0.tar.xz && rm qemu-5.0.0.tar.xz
 WORKDIR qemu-5.0.0
-RUN ./configure && make -j && make install
+RUN ./configure && make && make install
