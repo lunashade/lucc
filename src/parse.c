@@ -119,6 +119,7 @@ static Node *compound_stmt(Token **rest, Token *tok) {
         cur = cur->next = stmt(&tok, tok);
     }
     node->body = head.next;
+    add_type(node);
     *rest = skip(tok, "}");
     return node;
 }

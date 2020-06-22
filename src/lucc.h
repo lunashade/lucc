@@ -79,8 +79,14 @@ typedef enum {
     OP_LABEL,    // label
 } OperandKind;
 
+typedef enum {
+    TY_INT, // integer
+    TY_PTR, // pointer
+} TypeKind;
+
 typedef struct Token Token;
 typedef struct Var Var;
+typedef struct Type Type;
 typedef struct Node Node;
 typedef struct Function Function;
 typedef struct Program Program;
@@ -96,6 +102,18 @@ extern bool opt_dump_ir2;
 extern TargetArch opt_target;
 int align_to(int n, int align);
 void emitfln(char *fmt, ...);
+
+//
+// type.c
+//
+
+struct Type {
+    TypeKind kind;
+    int size, align;
+    Type *base;
+};
+bool is_integer(Type *);
+void add_type(Node *node);
 
 //
 // tokenize.c
@@ -127,6 +145,7 @@ Var *new_var(char *name);
 struct Node {
     NodeKind kind;
     Token *tok;
+    Type *ty;
     Node *lhs, *rhs;
     Node *next;
     Node *init, *cond, *inc, *then, *els;
