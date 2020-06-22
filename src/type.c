@@ -7,6 +7,8 @@ bool is_integer(Type *ty) { return ty->kind == TY_INT; }
 static Type *new_type(TypeKind kind, int size, int align) {
     Type *ty = calloc(1, sizeof(Type));
     ty->kind = kind;
+    ty->size = size;
+    ty->align = align;
     return ty;
 }
 

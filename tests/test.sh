@@ -113,4 +113,7 @@ assert 5 'main() { x=3; y=&x; *y=5; return x;}'
 assert 7 'main() { x=3; y=5; *(&x+8)=7; return y;}'
 assert 7 'main() { x=3; y=5; *(&y-8)=7; return x;}'
 
+assert 8 'main() { return sizeof 12; }'
+assert 8 'main() { x=3; y = &x; return sizeof(&y); }'
+
 echo "ok"

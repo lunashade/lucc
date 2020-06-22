@@ -289,10 +289,17 @@ static Node *mul(Token **rest, Token *tok) {
         return node;
     }
 }
-// unary = (unary-op)? unary | primary
+// unary = (unary-op)? unary
+//       | "sizeof" unary
+//       | primary
 // unary-op = "+" | "-" | "*" | "&"
 static Node *unary(Token **rest, Token *tok) {
     Token *start = tok;
+    if (equal(tok, "sizeof")) {
+        Node *node = unary(rest, tok->next);
+        add_type(node);
+        return new_number(node->ty->size, start);
+    }
     if (equal(tok, "+")) {
         return unary(rest, tok->next);
     }
