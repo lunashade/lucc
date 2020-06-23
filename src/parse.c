@@ -56,6 +56,50 @@ Node *new_number(long val, Token *tok) {
     node->val = val;
     return node;
 }
+Node *new_add(Node *lhs, Node *rhs, Token *tok) {
+    add_type(lhs);
+    add_type(rhs);
+
+    if (is_scalar(lhs->ty) && is_scalar(rhs->ty))
+        return new_binary(ND_ADD, lhs, rhs, tok);
+
+    if (is_pointing(lhs->ty) && is_pointing(rhs->ty))
+        error_tok(tok, "invalid operands: ptr + ptr");
+
+    // swap num + ptr -> ptr + num
+    if (!is_pointing(lhs->ty) && is_pointing(rhs->ty)) {
+        Node *tmp = lhs;
+        lhs = rhs;
+        rhs = tmp;
+    }
+
+    // ptr + num
+    Node *size = new_number(size_of(lhs->ty->base), tok);
+    return new_binary(ND_ADD, lhs, new_binary(ND_MUL, rhs, size, tok), tok);
+}
+
+Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
+    add_type(lhs);
+    add_type(rhs);
+
+    // scalar - scalar
+    if (is_scalar(lhs->ty) && is_scalar(rhs->ty))
+        return new_binary(ND_SUB, lhs, rhs, tok);
+
+    // ptr - ptr
+    if (is_pointing(lhs->ty) && is_pointing(rhs->ty)) {
+        Node *size = new_number(size_of(lhs->ty->base), tok);
+        return new_binary(ND_DIV, new_binary(ND_SUB, lhs, rhs, tok), size, tok);
+    }
+
+    // ptr - int
+    if (is_pointing(lhs->ty) && is_integer(rhs->ty)) {
+        Node *size = new_number(size_of(lhs->ty->base), tok);
+        return new_binary(ND_SUB, lhs, new_binary(ND_MUL, rhs, size, tok), tok);
+    }
+
+    error_tok(tok, "invalid operands");
+}
 
 Var *new_var(char *name) {
     Var *var = calloc(1, sizeof(Var));
@@ -258,12 +302,12 @@ static Node *add(Token **rest, Token *tok) {
         Token *op = tok;
         if (equal(tok, "+")) {
             Node *rhs = mul(&tok, tok->next);
-            node = new_binary(ND_ADD, node, rhs, op);
+            node = new_add(node, rhs, op);
             continue;
         }
         if (equal(tok, "-")) {
             Node *rhs = mul(&tok, tok->next);
-            node = new_binary(ND_SUB, node, rhs, op);
+            node = new_sub(node, rhs, op);
             continue;
         }
         *rest = tok;
@@ -298,7 +342,7 @@ static Node *unary(Token **rest, Token *tok) {
     if (equal(tok, "sizeof")) {
         Node *node = unary(rest, tok->next);
         add_type(node);
-        return new_number(node->ty->size, start);
+        return new_number(size_of(node->ty), start);
     }
     if (equal(tok, "+")) {
         return unary(rest, tok->next);

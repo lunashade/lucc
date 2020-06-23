@@ -52,10 +52,6 @@ static void parse_args(int argc, char **argv) {
         error("no input");
 }
 
-int align_to(int n, int align) {
-    assert((align & (align - 1)) == 0);
-    return (n + align - 1) & ~(align - 1);
-}
 void emitfln(char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);

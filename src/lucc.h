@@ -100,7 +100,6 @@ typedef struct IR IR;
 extern bool opt_dump_ir1;
 extern bool opt_dump_ir2;
 extern TargetArch opt_target;
-int align_to(int n, int align);
 void emitfln(char *fmt, ...);
 
 //
@@ -113,6 +112,10 @@ struct Type {
     Type *base;
 };
 bool is_integer(Type *);
+bool is_scalar(Type *);
+bool is_pointing(Type *);
+int align_to(int n, int align);
+int size_of(Type *ty);
 void add_type(Node *node);
 
 //
