@@ -110,10 +110,14 @@ struct Type {
     TypeKind kind;
     int size, align;
     Type *base;
+    Token *name; // variable name token
 };
+extern Type *ty_int;
 bool is_integer(Type *);
 bool is_scalar(Type *);
 bool is_pointing(Type *);
+bool is_typename(Token *);
+Type *pointer_to(Type *);
 int align_to(int n, int align);
 int size_of(Type *ty);
 void add_type(Node *node);
@@ -140,19 +144,22 @@ Token *tokenize(char *);
 struct Var {
     Var *next;
     char *name;
-    int len;
+    int len; // name length
     int offset;
+    Type *ty;
 };
-Var *new_var(char *name);
+Var *new_var(char *name, Type *ty);
 
 struct Node {
     NodeKind kind;
     Token *tok;
     Type *ty;
+
     Node *lhs, *rhs;
-    Node *next;
     Node *init, *cond, *inc, *then, *els;
+    Node *next;
     Node *body;
+
     long val; // ND_NUM
     char *funcname;
     Node *args;

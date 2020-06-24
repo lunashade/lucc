@@ -5,8 +5,8 @@ static int sym_id;
 static int label_id;
 Function *current_fn;
 
-static Var *new_lvar(char *name) {
-    Var *var = new_var(name);
+static Var *new_lvar(char *name, Type *ty) {
+    Var *var = new_var(name, ty);
     var->next = current_fn->locals;
     current_fn->locals = var;
     return var;
@@ -69,7 +69,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         int gp = 0;
         for (Node *n = node->args; n; n = n->next) {
             Operand *arg = irgen_expr(cur, &cur, n);
-            Var *argvar = new_lvar("");
+            Var *argvar = new_lvar("", n->ty);
             cur = new_ir(cur, IR_STACK_ARG, arg, NULL, new_symbol(argvar));
             args[gp++] = argvar;
         }

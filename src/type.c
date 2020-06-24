@@ -13,6 +13,9 @@ bool is_pointing(Type *ty) { return ty->base; }
 int size_of(Type *ty) {
     return ty->size;
 }
+bool is_typename(Token *tok) {
+    return equal(tok, "int");
+}
 
 static Type *new_type(TypeKind kind, int size, int align) {
     Type *ty = calloc(1, sizeof(Type));
@@ -22,7 +25,7 @@ static Type *new_type(TypeKind kind, int size, int align) {
     return ty;
 }
 
-static Type *pointer_to(Type *base) {
+Type *pointer_to(Type *base) {
     Type *ty = new_type(TY_PTR, 8, 8);
     ty->base = base;
     return ty;

@@ -35,8 +35,8 @@ noreturn void error(char *fmt, ...) {
     exit(1);
 }
 static void verror_at(char *loc, char *fmt, va_list ap) {
-    fprintf(stderr, "%.*s\n", (int)(loc - current_input), current_input);
-    fprintf(stderr, "%.*s", (int)(loc - current_input), "");
+    fprintf(stderr, "%s\n", current_input);
+    fprintf(stderr, "%*s", (int)(loc - current_input), " ");
     fprintf(stderr, "^ ");
     vfprintf(stderr, fmt, ap);
     fprintf(stderr, "\n");

@@ -1,6 +1,9 @@
 #include "lucc.h"
 
 static Function *funcdef(Token **rest, Token *tok);
+static Node *declaration(Token **rest, Token *tok);
+static Type *type_specifier(Token **rest, Token *tok);
+static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -100,10 +103,16 @@ Node *new_sub(Node *lhs, Node *rhs, Token *tok) {
 
     error_tok(tok, "invalid operands");
 }
+Node *new_var_node(Var *var, Token *tok) {
+    Node *node = new_node(ND_VAR, tok);
+    node->var = var;
+    return node;
+}
 
-Var *new_var(char *name) {
+Var *new_var(char *name, Type *ty) {
     Var *var = calloc(1, sizeof(Var));
     var->name = name;
+    var->ty = ty;
     return var;
 }
 static Var *locals;
@@ -115,8 +124,8 @@ static Var *find_var(Token *tok) {
     }
     return NULL;
 }
-static Var *new_lvar(char *name) {
-    Var *var = new_var(name);
+static Var *new_lvar(char *name, Type *ty) {
+    Var *var = new_var(name, ty);
     var->next = locals;
     locals = var;
     return var;
@@ -126,7 +135,7 @@ static Var *new_lvar(char *name) {
 // Parser
 //
 
-// program = stmt*
+// program = funcdef*
 Program *parse(Token *tok) {
     Program *prog = calloc(1, sizeof(Program));
     Function head = {};
@@ -154,18 +163,73 @@ static Function *funcdef(Token **rest, Token *tok) {
     return fn;
 }
 
-// compound-stmt = stmt* "}"
+// compound-stmt = ( declaration | stmt )* "}"
 static Node *compound_stmt(Token **rest, Token *tok) {
     Node *node = new_node(ND_BLOCK, tok);
     Node head = {};
     Node *cur = &head;
     while (!equal(tok, "}")) {
-        cur = cur->next = stmt(&tok, tok);
+        if (is_typename(tok)) {
+            cur = cur->next = declaration(&tok, tok);
+        } else {
+            cur = cur->next = stmt(&tok, tok);
+        }
     }
     node->body = head.next;
     add_type(node);
     *rest = skip(tok, "}");
     return node;
+}
+
+// declaration = type-specifier init-declarator-list ";"
+// init-declarator-list = init-declarator ("," init-declarator)*
+// init-declarator = declarator ("=" initializer)?
+// initializer = expr
+static Node *declaration(Token **rest, Token *tok) {
+    Type *basety = type_specifier(&tok, tok);
+
+    Node head = {};
+    Node *cur = &head;
+    int cnt = 0;
+    while (!equal(tok, ";")) {
+        if (cnt++ > 0)
+            tok = skip(tok, ",");
+
+        Type *ty = declarator(&tok, tok, basety);
+        Var *var = new_lvar(get_ident(ty->name), ty);
+        // initializer
+        if (!equal(tok, "="))
+            continue;
+
+        Node *lhs = new_var_node(var, ty->name);
+        Node *rhs = expr(&tok, tok->next);
+        Node *node = new_binary(ND_ASSIGN, lhs, rhs, tok);
+        cur = cur->next = new_unary(ND_EXPR_STMT, node, tok);
+    }
+
+    Node *node = new_node(ND_BLOCK, tok);
+    node->body = head.next;
+    *rest = skip(tok, ";");
+    return node;
+}
+
+// type-specifier = "int"
+static Type *type_specifier(Token **rest, Token *tok) {
+    *rest = skip(tok, "int");
+    return ty_int;
+}
+// declarator = ("*")* ident
+static Type *declarator(Token **rest, Token *tok, Type *ty) {
+    for (;equal(tok, "*");tok=tok->next) {
+        ty = pointer_to(ty);
+    }
+    if (tok->kind != TK_IDENT) {
+        error_tok(tok, "expected variable name");
+    }
+
+    ty->name = tok;
+    *rest = tok->next;
+    return ty;
 }
 
 // stmt = "return" expr ";"
@@ -376,7 +440,7 @@ static Node *primary(Token **rest, Token *tok) {
         if (var) {
             node->var = var;
         } else {
-            node->var = new_lvar(get_ident(tok));
+            error_tok(tok, "undeclared identifier: %s", get_ident(tok));
         }
         *rest = tok->next;
         return node;
