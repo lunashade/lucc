@@ -22,8 +22,8 @@ static char *get_operand(Operand *op) {
         assert(op->reg);
         return op->reg->name;
     case OP_LABEL: {
-        char *buf = malloc(20 + strlen(op->prefix));
-        sprintf(buf, ".L%s%d", op->prefix, op->id);
+        char *buf = malloc(20 + strlen(op->name));
+        sprintf(buf, ".L%s%d", op->name, op->id);
         return buf;
     }
     case OP_SYMBOL:

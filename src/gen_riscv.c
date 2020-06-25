@@ -28,8 +28,8 @@ static char *get_address(Operand *op) {
 }
 static char *get_label(Operand *op) {
     assert(op->kind == OP_LABEL);
-    char *buf = malloc(20 + strlen(op->prefix));
-    sprintf(buf, ".L%s%d", op->prefix, op->id);
+    char *buf = malloc(20 + strlen(op->name));
+    sprintf(buf, ".L%s%d", op->name, op->id);
     return buf;
 }
 

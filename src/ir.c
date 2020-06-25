@@ -17,21 +17,23 @@ Operand *new_operand(OperandKind kind) {
     op->kind = kind;
     return op;
 }
-Operand *new_register(void) {
+Operand *new_register(Type *ty) {
     Operand *op = new_operand(OP_REGISTER);
     op->id = reg_id++;
+    op->ty = ty;
     return op;
 }
 Operand *new_symbol(Var *var) {
     Operand *op = new_operand(OP_SYMBOL);
     op->id = sym_id++;
     op->var = var;
+    op->ty = var->ty;
     return op;
 }
-Operand *new_label(char *prefix) {
+Operand *new_label(char *name) {
     Operand *op = new_operand(OP_LABEL);
     op->id = label_id++;
-    op->prefix = prefix;
+    op->name = name;
     return op;
 }
 
@@ -59,7 +61,7 @@ Operand *irgen_addr(IR *cur, IR **code, Node *node) {
 Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     switch (node->kind) {
     case ND_NUM: {
-        cur = new_ir(cur, IR_IMM, NULL, NULL, new_register());
+        cur = new_ir(cur, IR_IMM, NULL, NULL, new_register(node->ty));
         cur->val = node->val;
         *code = cur;
         return cur->dst;
@@ -73,7 +75,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
             cur = new_ir(cur, IR_STACK_ARG, arg, NULL, new_symbol(argvar));
             args[gp++] = argvar;
         }
-        cur = new_ir(cur, IR_CALL, NULL, NULL, new_register());
+        cur = new_ir(cur, IR_CALL, NULL, NULL, new_register(node->ty));
         cur->funcname = node->funcname;
         cur->args = args;
         cur->nargs = node->nargs;
@@ -83,26 +85,26 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
     case ND_ASSIGN: {
         Operand *lhs = irgen_addr(cur, &cur, node->lhs);
         Operand *rhs = irgen_expr(cur, &cur, node->rhs);
-        Operand *dst = new_register();
+        Operand *dst = new_register(node->ty);
         cur = new_ir(cur, IR_STORE, lhs, rhs, dst);
         *code = cur;
         return dst;
     }
     case ND_VAR: {
         Operand *lhs = irgen_addr(cur, &cur, node);
-        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_register());
+        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_register(node->ty));
         *code = cur;
         return cur->dst;
     }
     case ND_ADDR: {
         Operand *lhs = irgen_addr(cur, &cur, node->lhs);
-        cur = new_ir(cur, IR_ADDR, lhs, NULL, new_register());
+        cur = new_ir(cur, IR_ADDR, lhs, NULL, new_register(node->ty));
         *code = cur;
         return cur->dst;
     }
     case ND_DEREF: {
         Operand *lhs = irgen_expr(cur, &cur, node->lhs);
-        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_register());
+        cur = new_ir(cur, IR_LOAD, lhs, NULL, new_register(node->ty));
         *code = cur;
         return cur->dst;
     }
@@ -110,7 +112,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
 
     Operand *lhs = irgen_expr(cur, &cur, node->lhs);
     Operand *rhs = irgen_expr(cur, &cur, node->rhs);
-    Operand *dst = new_register();
+    Operand *dst = new_register(node->ty);
     switch (node->kind) {
     case ND_ADD:
         cur = new_ir(cur, IR_ADD, lhs, rhs, dst);

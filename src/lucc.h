@@ -201,9 +201,10 @@ struct Register {
 struct Operand {
     OperandKind kind;
     int id;
+    Type *ty;
     Register *reg;
     Var *var;
-    char *prefix; // label prefix
+    char *name; // label name
 };
 struct IR {
     IR *next;
