@@ -50,6 +50,9 @@ void add_type(Node *node) {
     for (Node *n = node->body; n; n = n->next) {
         add_type(n);
     }
+    for (Node *n = node->args; n; n = n->next) {
+        add_type(n);
+    }
 
     switch (node->kind) {
     default:
@@ -67,6 +70,7 @@ void add_type(Node *node) {
     case ND_LE:
     case ND_NUM:
     case ND_VAR:
+    case ND_FUNCALL:
         node->ty = ty_int;
         return;
     case ND_ADDR:
