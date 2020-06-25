@@ -152,6 +152,13 @@ static void codegen_fn(Function *fn) {
     emitfln("\tsd s11, %d(sp)", fn->stacksize - 104);
     emitfln("\taddi s0, sp, %d", fn->stacksize);
     // TODO: save callee-saved registers
+    int i = 0;
+    for (Var *v = fn->params; v; v = v->next) {
+        i++;
+    }
+    for (Var *v = fn->params; v; v = v->next) {
+        emitfln("\tsd %s, -%d(s0)", get_argreg(--i), v->offset);
+    }
 
     for (IR *ir = fn->irs; ir; ir = ir->next) {
         switch (ir->kind) {

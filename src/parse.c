@@ -5,6 +5,7 @@ static Node *declaration(Token **rest, Token *tok);
 static Type *type_specifier(Token **rest, Token *tok);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
 static Type *type_suffix(Token **rest, Token *tok, Type *ty);
+static Type *func_params(Token **rest, Token *tok, Type *ty);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -157,6 +158,11 @@ static Function *funcdef(Token **rest, Token *tok) {
     Type *ty = type_specifier(&tok, tok);
     ty = declarator(&tok, tok, ty);
     fn->name = get_ident(ty->name);
+    for (Type *t = ty->params; t; t = t->next) {
+        new_lvar(get_ident(t->name), t);
+    }
+    fn->params = locals;
+
     tok = skip(tok, "{");
     fn->nodes = compound_stmt(&tok, tok);
     fn->locals = locals;
@@ -234,13 +240,30 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
 }
 
 // type-suffix = ("(" func-params)?
-// func-params = ")"
 static Type *type_suffix(Token **rest, Token *tok, Type *ty) {
     if (equal(tok, "(")) {
-        *rest = skip(tok->next, ")");
-        return func_type(ty);
+        return func_params(rest, tok->next, ty);
     }
     *rest = tok;
+    return ty;
+}
+
+// func-params = param ("," param)* ")"
+// param = type-specifier declarator
+static Type *func_params(Token **rest, Token *tok, Type *ty) {
+    Type head = {};
+    Type *cur = &head;
+    int cnt = 0;
+    while (!equal(tok, ")")) {
+        if (cnt++ > 0)
+            tok = skip(tok, ",");
+        Type *basety = type_specifier(&tok, tok);
+        Type *ty = declarator(&tok, tok, basety);
+        cur = cur->next = copy_type(ty);
+    }
+    ty = func_type(ty);
+    ty->params = head.next;
+    *rest = skip(tok, ")");
     return ty;
 }
 

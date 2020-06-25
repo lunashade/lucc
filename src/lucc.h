@@ -112,13 +112,16 @@ struct Type {
     int size, align;
     Type *base;
     Type *return_ty; // function return type
-    Token *name;     // variable name token
+    Type *params;    // function parameters
+    Type *next;
+    Token *name; // variable name token
 };
 extern Type *ty_int;
 bool is_integer(Type *);
 bool is_scalar(Type *);
 bool is_pointing(Type *);
 bool is_typename(Token *);
+Type *copy_type(Type *);
 Type *pointer_to(Type *);
 Type *func_type(Type *);
 int align_to(int n, int align);
@@ -176,6 +179,7 @@ struct Function {
     IR *irs;
     char *name;
     Var *locals;
+    Var *params;
     int stacksize;
 };
 

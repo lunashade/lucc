@@ -151,6 +151,14 @@ static void codegen_fn(Function *fn) {
     emitfln("\tmov %%r14, -24(%%rbp)");
     emitfln("\tmov %%r15, -32(%%rbp)");
 
+    int i = 0;
+    for (Var *v = fn->params; v; v = v->next) {
+        i++;
+    }
+    for (Var *v = fn->params; v; v = v->next) {
+        emitfln("\tmov %s, -%d(%%rbp)", get_argreg(--i), v->offset);
+    }
+
     for (IR *ir = fn->irs; ir; ir = ir->next) {
         switch (ir->kind) {
         case IR_NOP:

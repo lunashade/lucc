@@ -57,7 +57,6 @@ function assert {
     fi
 }
 
-
 assert 0 'int main(){return 0;}'
 assert 42 'int main(){return 42;}'
 assert 42 'int main(){return 50 - 10 + 2;}'
@@ -118,5 +117,8 @@ assert 8 'int main() { int x=3; int *y = &x; return sizeof(&y); }'
 
 assert 1 'int main() { int x=3; int *y=&x; int *z=y+1; return z-y; }'
 assert 8 'int main() {return isalnum(97);}'
+
+assert 6 'int main() {return add3(1,2,3);} int add3(int a, int b, int c) {return a+b+c;}'
+assert 55 'int main() {return fibo(9);} int fibo(int n) {if (n<=1) return 1; return fibo(n-2) + fibo(n-1);}'
 
 echo "ok"

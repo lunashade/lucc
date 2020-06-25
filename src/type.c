@@ -10,12 +10,8 @@ Type *ty_int = &(Type){TY_INT, 8, 8};
 bool is_integer(Type *ty) { return ty->kind == TY_INT; }
 bool is_scalar(Type *ty) { return is_integer(ty); }
 bool is_pointing(Type *ty) { return ty->base; }
-int size_of(Type *ty) {
-    return ty->size;
-}
-bool is_typename(Token *tok) {
-    return equal(tok, "int");
-}
+int size_of(Type *ty) { return ty->size; }
+bool is_typename(Token *tok) { return equal(tok, "int"); }
 
 static Type *new_type(TypeKind kind, int size, int align) {
     Type *ty = calloc(1, sizeof(Type));
@@ -23,6 +19,12 @@ static Type *new_type(TypeKind kind, int size, int align) {
     ty->size = size;
     ty->align = align;
     return ty;
+}
+
+Type *copy_type(Type *ty) {
+    Type *new_ty = calloc(1, sizeof(Type));
+    *new_ty = *ty;
+    return new_ty;
 }
 
 Type *pointer_to(Type *base) {
