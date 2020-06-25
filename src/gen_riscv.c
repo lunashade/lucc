@@ -32,6 +32,7 @@ static char *get_label(Operand *op) {
     sprintf(buf, ".L%s%d", op->prefix, op->id);
     return buf;
 }
+
 static Register *T0 = &(Register){"t0"};
 static Register *T1 = &(Register){"t1"};
 static Register *T2 = &(Register){"t2"};
@@ -47,9 +48,10 @@ static Register *A3 = &(Register){"a3"};
 static Register *A4 = &(Register){"a4"};
 static Register *A5 = &(Register){"a5"};
 static Register *A6 = &(Register){"a6"};
+static Register *A7 = &(Register){"a7"};
 
 static char *get_argreg(int i) {
-    Register *argregs[] = {A0, A1, A2, A3, A4, A5, A6};
+    Register *argregs[] = {A0, A1, A2, A3, A4, A5, A6, A7};
     if (i < 0 || i >= sizeof(argregs) / sizeof(*argregs))
         error("argument register exhausted");
     return argregs[i]->name;
@@ -75,7 +77,7 @@ static void kill(Operand *op) {
     op->reg->used = false;
 }
 static void calc_stacksize(Function *func) {
-    int offset = 16;
+    int offset = 112;
     for (Var *var = func->locals; var; var = var->next) {
         offset += 8;
         var->offset = offset;
@@ -137,6 +139,17 @@ static void codegen_fn(Function *fn) {
     emitfln("\taddi sp, sp, -%d", fn->stacksize);
     emitfln("\tsd ra, %d(sp)", fn->stacksize - 8);
     emitfln("\tsd s0, %d(sp)", fn->stacksize - 16);
+    emitfln("\tsd s1, %d(sp)", fn->stacksize - 24);
+    emitfln("\tsd s2, %d(sp)", fn->stacksize - 32);
+    emitfln("\tsd s3, %d(sp)", fn->stacksize - 40);
+    emitfln("\tsd s4, %d(sp)", fn->stacksize - 48);
+    emitfln("\tsd s5, %d(sp)", fn->stacksize - 56);
+    emitfln("\tsd s6, %d(sp)", fn->stacksize - 64);
+    emitfln("\tsd s7, %d(sp)", fn->stacksize - 72);
+    emitfln("\tsd s8, %d(sp)", fn->stacksize - 80);
+    emitfln("\tsd s9, %d(sp)", fn->stacksize - 88);
+    emitfln("\tsd s10, %d(sp)", fn->stacksize - 96);
+    emitfln("\tsd s11, %d(sp)", fn->stacksize - 104);
     emitfln("\taddi s0, sp, %d", fn->stacksize);
     // TODO: save callee-saved registers
 
@@ -161,27 +174,28 @@ static void codegen_fn(Function *fn) {
                     -ir->lhs->var->offset);
             break;
         case IR_LOAD:
-            emitfln("\tld %s, %s", get_operand(ir->dst),
-                    get_address(ir->lhs));
+            emitfln("\tld %s, %s", get_operand(ir->dst), get_address(ir->lhs));
             break;
         case IR_STORE:
-            emitfln("\tsd %s, %s", get_operand(ir->dst),
-                    get_address(ir->lhs));
+            emitfln("\tsd %s, %s", get_operand(ir->dst), get_address(ir->lhs));
             break;
         case IR_MOV:
             emitfln("\tmv %s, %s", get_operand(ir->dst), get_operand(ir->rhs));
             break;
         case IR_CALL:
-            // TODO: save caller-saved registers: t0-t6
+            for (int i = 0; i < 7; i++)
+                emitfln("\tmv s%d, t%d", i + 1, i);
+
             for (int i = 0; i < ir->nargs; i++) {
-                emitfln("ld %s, %d(s0)", get_argreg(i), -ir->args[i]->offset);
+                emitfln("\tld %s, %d(s0)", get_argreg(i), -ir->args[i]->offset);
             }
             emitfln("\tcall %s", ir->funcname);
+            for (int i = 0; i < 7; i++)
+                emitfln("\tmv t%d, s%d", i, i + 1);
             emitfln("\tmv %s, a0", get_operand(ir->dst));
             break;
         case IR_STACK_ARG:
-            emitfln("\tsd %s, %s", get_operand(ir->lhs),
-                    get_address(ir->dst));
+            emitfln("\tsd %s, %s", get_operand(ir->lhs), get_address(ir->dst));
             break;
         case IR_ADD:
             emitfln("\tadd %s, %s, %s", get_operand(ir->dst),
@@ -240,8 +254,19 @@ static void codegen_fn(Function *fn) {
     emitfln(".L.return.%s:", fn->name);
     emitfln("\tld ra, %d(sp)", fn->stacksize - 8);
     emitfln("\tld s0, %d(sp)", fn->stacksize - 16);
+    emitfln("\tld s1, %d(sp)", fn->stacksize - 24);
+    emitfln("\tld s2, %d(sp)", fn->stacksize - 32);
+    emitfln("\tld s3, %d(sp)", fn->stacksize - 40);
+    emitfln("\tld s4, %d(sp)", fn->stacksize - 48);
+    emitfln("\tld s5, %d(sp)", fn->stacksize - 56);
+    emitfln("\tld s6, %d(sp)", fn->stacksize - 64);
+    emitfln("\tld s7, %d(sp)", fn->stacksize - 72);
+    emitfln("\tld s8, %d(sp)", fn->stacksize - 80);
+    emitfln("\tld s9, %d(sp)", fn->stacksize - 88);
+    emitfln("\tld s10, %d(sp)", fn->stacksize - 96);
+    emitfln("\tld s11, %d(sp)", fn->stacksize - 104);
     emitfln("\taddi sp, sp, %d", fn->stacksize);
-    emitfln("\tret");
+    emitfln("\tjr ra");
 }
 
 void codegen_riscv(Program *prog) {

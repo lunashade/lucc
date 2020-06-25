@@ -117,5 +117,6 @@ assert 8 'main() { return sizeof 12; }'
 assert 8 'main() { int x=3; int *y = &x; return sizeof(&y); }'
 
 assert 1 'main() { int x=3; int *y=&x; int *z=y+1; return z-y; }'
+assert 8 'main() {return isalnum(97);}'
 
 echo "ok"

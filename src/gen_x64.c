@@ -184,16 +184,20 @@ static void codegen_fn(Function *fn) {
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_operand(ir->dst));
             break;
         case IR_CALL:
-            emitfln("push %%r10");
-            emitfln("push %%r11");
+            emitfln("sub $32, %%rsp");
+            emitfln("mov %%rbx, 8(%%rsp)");
+            emitfln("mov %%r10, 16(%%rsp)");
+            emitfln("mov %%r11, 24(%%rsp)");
             for (int i = 0; i < ir->nargs; i++) {
                 emitfln("\tmov %d(%%rbp), %s", -ir->args[i]->offset,
                         get_argreg(i));
             }
             emitfln("\tmov $0, %%rax");
             emitfln("\tcall %s", ir->funcname);
-            emitfln("pop %%r11");
-            emitfln("pop %%r10");
+            emitfln("mov 8(%%rsp), %%rbx");
+            emitfln("mov 16(%%rsp), %%r10");
+            emitfln("mov 24(%%rsp), %%r11");
+            emitfln("add $32, %%rsp");
             emitfln("\tmov %%rax, %s", get_operand(ir->dst));
             break;
         case IR_STACK_ARG:
