@@ -80,8 +80,9 @@ typedef enum {
 } OperandKind;
 
 typedef enum {
-    TY_INT, // integer
-    TY_PTR, // pointer
+    TY_INT,  // integer
+    TY_PTR,  // pointer
+    TY_FUNC, // function
 } TypeKind;
 
 typedef struct Token Token;
@@ -110,7 +111,8 @@ struct Type {
     TypeKind kind;
     int size, align;
     Type *base;
-    Token *name; // variable name token
+    Type *return_ty; // function return type
+    Token *name;     // variable name token
 };
 extern Type *ty_int;
 bool is_integer(Type *);
@@ -118,6 +120,7 @@ bool is_scalar(Type *);
 bool is_pointing(Type *);
 bool is_typename(Token *);
 Type *pointer_to(Type *);
+Type *func_type(Type *);
 int align_to(int n, int align);
 int size_of(Type *ty);
 void add_type(Node *node);

@@ -30,6 +30,11 @@ Type *pointer_to(Type *base) {
     ty->base = base;
     return ty;
 }
+Type *func_type(Type *base) {
+    Type *ty = new_type(TY_FUNC, 0, 0);
+    ty->return_ty = base;
+    return ty;
+}
 
 void add_type(Node *node) {
     if (!node || node->ty)

@@ -4,6 +4,7 @@ static Function *funcdef(Token **rest, Token *tok);
 static Node *declaration(Token **rest, Token *tok);
 static Type *type_specifier(Token **rest, Token *tok);
 static Type *declarator(Token **rest, Token *tok, Type *ty);
+static Type *type_suffix(Token **rest, Token *tok, Type *ty);
 static Node *compound_stmt(Token **rest, Token *tok);
 static Node *stmt(Token **rest, Token *tok);
 static Node *expr_stmt(Token **rest, Token *tok);
@@ -149,13 +150,13 @@ Program *parse(Token *tok) {
     return prog;
 }
 
-// funcdef = ident "(" ")" "{" compound-stmt
+// funcdef = type-specifier declarator "{" compound-stmt
 static Function *funcdef(Token **rest, Token *tok) {
     Function *fn = calloc(1, sizeof(Function));
     locals = NULL;
-    fn->name = get_ident(tok);
-    tok = skip(tok->next, "(");
-    tok = skip(tok, ")");
+    Type *ty = type_specifier(&tok, tok);
+    ty = declarator(&tok, tok, ty);
+    fn->name = get_ident(ty->name);
     tok = skip(tok, "{");
     fn->nodes = compound_stmt(&tok, tok);
     fn->locals = locals;
@@ -218,17 +219,28 @@ static Type *type_specifier(Token **rest, Token *tok) {
     *rest = skip(tok, "int");
     return ty_int;
 }
-// declarator = ("*")* ident
+// declarator = ("*")* ident type-suffix?
 static Type *declarator(Token **rest, Token *tok, Type *ty) {
-    for (;equal(tok, "*");tok=tok->next) {
+    for (; equal(tok, "*"); tok = tok->next) {
         ty = pointer_to(ty);
     }
     if (tok->kind != TK_IDENT) {
         error_tok(tok, "expected variable name");
     }
 
+    ty = type_suffix(rest, tok->next, ty);
     ty->name = tok;
-    *rest = tok->next;
+    return ty;
+}
+
+// type-suffix = ("(" func-params)?
+// func-params = ")"
+static Type *type_suffix(Token **rest, Token *tok, Type *ty) {
+    if (equal(tok, "(")) {
+        *rest = skip(tok->next, ")");
+        return func_type(ty);
+    }
+    *rest = tok;
     return ty;
 }
 
