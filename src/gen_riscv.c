@@ -181,7 +181,18 @@ static void codegen_fn(Function *fn) {
                     -ir->lhs->var->offset);
             break;
         case IR_LOAD:
-            emitfln("\tld %s, %s", get_operand(ir->dst), get_address(ir->lhs));
+            if (ir->dst->ty->kind == TY_ARRAY) {
+                if (ir->lhs->kind == OP_SYMBOL) {
+                    emitfln("\taddi %s, s0, %d", get_operand(ir->dst),
+                            -ir->lhs->var->offset);
+                } else if (ir->lhs->kind == OP_REGISTER) {
+                    emitfln("\tmv %s, %s", get_operand(ir->dst),
+                            get_operand(ir->lhs));
+                }
+            } else {
+                emitfln("\tld %s, %s", get_operand(ir->dst),
+                        get_address(ir->lhs));
+            }
             break;
         case IR_STORE:
             emitfln("\tsd %s, %s", get_operand(ir->dst), get_address(ir->lhs));

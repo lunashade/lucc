@@ -27,6 +27,12 @@ Type *copy_type(Type *ty) {
     return new_ty;
 }
 
+Type *array_of(Type *base, int len) {
+    Type *ty = new_type(TY_ARRAY, len * size_of(base), size_of(base));
+    ty->base = base;
+    ty->array_len = len;
+    return ty;
+}
 Type *pointer_to(Type *base) {
     Type *ty = new_type(TY_PTR, 8, 8);
     ty->base = base;
@@ -71,19 +77,24 @@ void add_type(Node *node) {
     case ND_LT:
     case ND_LE:
     case ND_NUM:
-    case ND_VAR:
     case ND_FUNCALL:
         node->ty = ty_int;
         return;
+    case ND_VAR:
+        node->ty = node->var->ty;
+        return;
     case ND_ADDR:
-        node->ty = pointer_to(node->lhs->ty);
+        if (node->lhs->ty->kind == TY_ARRAY) {
+            node->ty = pointer_to(node->lhs->ty->base);
+        } else {
+            node->ty = pointer_to(node->lhs->ty);
+        }
         return;
     case ND_DEREF:
-        if (node->lhs->ty->kind == TY_PTR) {
-            node->ty = node->lhs->ty->base;
-        } else {
-            node->ty = ty_int;
+        if (!is_pointing(node->lhs->ty)) {
+            error_tok(node->tok, "invalid pointer dereference");
         }
+        node->ty = node->lhs->ty->base;
         return;
     }
 }

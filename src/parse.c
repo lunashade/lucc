@@ -239,10 +239,18 @@ static Type *declarator(Token **rest, Token *tok, Type *ty) {
     return ty;
 }
 
-// type-suffix = ("(" func-params)?
+// type-suffix = ("(" func-params | "[" array-dim)?
+// array-dim = num "]" type-suffix
 static Type *type_suffix(Token **rest, Token *tok, Type *ty) {
     if (equal(tok, "(")) {
         return func_params(rest, tok->next, ty);
+    }
+    if (equal(tok, "[")) {
+        int sz = get_number(tok->next);
+        tok = skip(tok->next->next, "]");
+        *rest = tok;
+        ty = type_suffix(rest, tok, ty);
+        return array_of(ty, sz);
     }
     *rest = tok;
     return ty;

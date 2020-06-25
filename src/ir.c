@@ -83,6 +83,9 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         return cur->dst;
     }
     case ND_ASSIGN: {
+        if (node->ty->kind == TY_ARRAY) {
+            error_tok(node->tok, "array is not an lvalue");
+        }
         Operand *lhs = irgen_addr(cur, &cur, node->lhs);
         Operand *rhs = irgen_expr(cur, &cur, node->rhs);
         Operand *dst = new_register(node->ty);

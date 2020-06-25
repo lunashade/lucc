@@ -78,7 +78,7 @@ static void kill(Operand *op) {
 static void calc_stacksize(Function *func) {
     int offset = 32;
     for (Var *var = func->locals; var; var = var->next) {
-        offset += 8;
+        offset += size_of(var->ty);
         var->offset = offset;
     }
     func->stacksize = align_to(offset, 16);
@@ -183,7 +183,13 @@ static void codegen_fn(Function *fn) {
             emitfln("\tlea %s, %s", get_address(ir->lhs), get_operand(ir->dst));
             break;
         case IR_LOAD:
-            emitfln("\tmov %s, %s", get_address(ir->lhs), get_operand(ir->dst));
+            if (ir->dst->ty->kind == TY_ARRAY) {
+                emitfln("\tlea %s, %s", get_address(ir->lhs),
+                        get_operand(ir->dst));
+            } else {
+                emitfln("\tmov %s, %s", get_address(ir->lhs),
+                        get_operand(ir->dst));
+            }
             break;
         case IR_STORE:
             emitfln("\tmov %s, %s", get_operand(ir->rhs), get_address(ir->lhs));
