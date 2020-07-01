@@ -16,6 +16,7 @@ static Node *relational(Token **rest, Token *tok);
 static Node *add(Token **rest, Token *tok);
 static Node *mul(Token **rest, Token *tok);
 static Node *unary(Token **rest, Token *tok);
+static Node *postfix(Token **rest, Token *tok);
 static Node *primary(Token **rest, Token *tok);
 static Node *funcall(Token **rest, Token *tok);
 
@@ -440,9 +441,10 @@ static Node *mul(Token **rest, Token *tok) {
         return node;
     }
 }
+
 // unary = (unary-op)? unary
 //       | "sizeof" unary
-//       | primary
+//       | postfix
 // unary-op = "+" | "-" | "*" | "&"
 static Node *unary(Token **rest, Token *tok) {
     Token *start = tok;
@@ -464,7 +466,22 @@ static Node *unary(Token **rest, Token *tok) {
     if (equal(tok, "&")) {
         return new_unary(ND_ADDR, unary(rest, tok->next), start);
     }
-    return primary(rest, tok);
+    return postfix(rest, tok);
+}
+
+// postfix = primary postfix-op?
+// postfix-op = "[" expr "]"
+static Node *postfix(Token **rest, Token *tok) {
+    Node *node = primary(&tok, tok);
+    while (equal(tok, "[")) {
+        Token *op = tok;
+        Node *ex = expr(&tok, tok->next);
+        node = new_add(node, ex, op);
+        node = new_unary(ND_DEREF, node, op);
+        tok = skip(tok, "]");
+    }
+    *rest = tok;
+    return node;
 }
 
 // primary = num | ident | funcall | "(" expr ")"
