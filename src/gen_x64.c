@@ -69,8 +69,8 @@ static void alloc(Operand *op) {
     error("register exhausted");
 }
 static void kill(Operand *op) {
-    assert(op);
-    assert(op->reg);
+    if (op->kind != OP_REGISTER)
+        return;
     assert(op->reg->used);
     op->reg->used = false;
 }

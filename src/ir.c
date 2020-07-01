@@ -90,6 +90,7 @@ Operand *irgen_expr(IR *cur, IR **code, Node *node) {
         Operand *rhs = irgen_expr(cur, &cur, node->rhs);
         Operand *dst = new_register(node->ty);
         cur = new_ir(cur, IR_STORE, lhs, rhs, dst);
+        cur = new_ir(cur, IR_FREE, lhs, NULL, NULL);
         *code = cur;
         return dst;
     }
